@@ -1,0 +1,106 @@
+name: CI Pipeline
+
+on:
+  pull_request:
+    branches:
+      - "main"
+
+jobs:
+  test-all:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install poetry
+          poetry install
+
+      - name: Run flake8
+        run: |
+          poetry run flake8 src
+      - name: Run movies tests
+        run: |
+          poetry run pytest src/test 
+
+  test-movies:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install poetry
+          poetry install
+
+      - name: Run flake8
+        run: |
+          poetry run flake8 src
+
+      - name: Run movies tests
+        run: |
+          poetry run pytest src/tests/test_integration/test_movies.py
+
+  test-users:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install poetry
+          poetry install
+
+      - name: Run flake8
+        run: |
+          poetry run flake8 src
+
+      - name: Run users tests
+        run: |
+          poetry run pytest src/tests/test_integration/test_users.py
+
+  test-payments:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install poetry
+          poetry install
+
+      - name: Run flake8
+        run: |
+          poetry run flake8 src
+
+      - name: Run payment tests
+        run: |
+          poetry run pytest src/tests/test_integration/test_payments.py
