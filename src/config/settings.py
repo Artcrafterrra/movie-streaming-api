@@ -3,6 +3,9 @@ from pathlib import Path
 from typing import Any
 
 from pydantic_settings import BaseSettings
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 class BaseAppSettings(BaseSettings):
@@ -40,7 +43,7 @@ class BaseAppSettings(BaseSettings):
     S3_BUCKET_NAME: str = os.getenv("MINIO_STORAGE", "theater-storage")
 
     @property
-    def S3_STORAGE_ENDPOINT(self) -> str:   # NOQA N802
+    def S3_STORAGE_ENDPOINT(self) -> str:  # NOQA N802
         return f"http://{self.S3_STORAGE_HOST}:{self.S3_STORAGE_PORT}"
 
 
@@ -51,8 +54,12 @@ class Settings(BaseAppSettings):
     POSTGRES_DB_PORT: int = int(os.getenv("POSTGRES_DB_PORT", 5432))
     POSTGRES_DB: str = os.getenv("POSTGRES_DB", "test_db")
 
-    SECRET_KEY_ACCESS: str = os.getenv("SECRET_KEY_ACCESS", os.urandom(32))
-    SECRET_KEY_REFRESH: str = os.getenv("SECRET_KEY_REFRESH", os.urandom(32))
+    SECRET_KEY_ACCESS: str = os.getenv(
+        "SECRET_KEY_ACCESS", os.urandom(32).hex()
+    )
+    SECRET_KEY_REFRESH: str = os.getenv(
+        "SECRET_KEY_REFRESH", os.urandom(32).hex()
+    )
     JWT_SIGNING_ALGORITHM: str = os.getenv("JWT_SIGNING_ALGORITHM", "HS256")
 
 
