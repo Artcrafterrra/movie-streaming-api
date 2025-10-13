@@ -1,4 +1,3 @@
-
 services:
   db:
     image: postgres:17
@@ -52,6 +51,8 @@ services:
       db:
         condition: service_healthy
       minio:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     ports:
       - "8000:8000"
@@ -126,10 +127,39 @@ services:
     networks:
       - theater_network
 
+  redis:
+    image: redis:7-alpine
+    container_name: redis_theater
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_theater_data:/data
+    networks:
+      - theater_network
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command: redis-server --appendonly yes
+
+  celery_worker:
+    build: .
+    container_name: celery_worker_theater
+    command: celery -A src.celery_app worker --loglevel=info
+    env_file:
+      - .env
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - theater_network
+
 volumes:
   postgres_theater_data:
   pgadmin_theater_data:
   minio_data:
+  redis_theater_data:
 
 networks:
   theater_network:
