@@ -40,7 +40,7 @@ jobs:
 
       - name: Run mypy
         run: |
-          poetry run mypy src
+          poetry run mypy src --config-file=mypy.ini
         continue-on-error: true
 
   tests:
