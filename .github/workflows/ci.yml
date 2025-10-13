@@ -28,9 +28,6 @@ jobs:
 
       - name: Run black
         run: |
-          if [ -f .blackignore ]; then
-            echo "Using .blackignore file"
-          fi
           poetry run black src --check
 
       - name: Run flake8
