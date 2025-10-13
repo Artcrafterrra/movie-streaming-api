@@ -17,7 +17,7 @@ def validate_image(avatar: UploadFile) -> None:
     supported_image_formats = ["JPG", "JPEG", "PNG"]
     max_file_size = 1 * 1024 * 1024
 
-    contents = avatar.file.read()    # NOQA VNE002
+    contents = avatar.file.read()  # NOQA VNE002
     if len(contents) > max_file_size:
         raise ValueError("Image size exceeds 1 MB")
 
