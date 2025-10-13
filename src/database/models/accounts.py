@@ -1,5 +1,6 @@
+from database.models.base import Base
 from datetime import datetime, date, timezone, timedelta
-from enum import Enum
+import enum
 from typing import Optional
 
 from sqlalchemy import (
@@ -11,21 +12,20 @@ from sqlalchemy import (
     Integer,
     Date,
     Text,
-    UniqueConstraint,
+    Enum,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
 
 from database.validators.accounts import validate_email
-from database.models.base import Base
 
 
-class UserGroupEnum(Enum):
+class UserGroupEnum(str, enum.Enum):
     USER = "user"
     MODERATOR = "moderator"
     ADMIN = "admin"
 
 
-class GenderEnum(Enum):
+class GenderEnum(str, enum.Enum):
     MAN = "man"
     WOMAN = "woman"
 
