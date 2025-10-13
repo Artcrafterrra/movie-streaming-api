@@ -8,7 +8,4 @@ REDIS_DB = os.getenv("REDIS_DB", "0")
 
 REDIS_URL = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}"
 
-celery_app = Celery(
-    "movie_streaming_api",
-    broker=REDIS_URL
-)
+celery_app = Celery("movie_streaming_api", broker=REDIS_URL)
