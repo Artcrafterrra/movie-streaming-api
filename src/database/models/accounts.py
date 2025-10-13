@@ -1,4 +1,4 @@
-from datetime import datetime, date
+from datetime import datetime, date, timezone, timedelta
 from enum import Enum
 from typing import Optional
 
@@ -10,7 +10,8 @@ from sqlalchemy import (
     func,
     Integer,
     Date,
-    Text, UniqueConstraint,
+    Text,
+    UniqueConstraint,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
 
@@ -70,10 +71,39 @@ class UserModel(Base):
         onupdate=func.now(),
         nullable=False,
     )
+
     group_id: Mapped[int] = mapped_column(
         ForeignKey("user_groups.id", ondelete="CASCADE"), nullable=False
     )
-    group: Mapped[UserGroupModel] = relationship("UserGroupModel", back_populates="users")
+    group: Mapped[UserGroupModel] = relationship(
+        "UserGroupModel", back_populates="users"
+    )
+
+    activation_token: Mapped[Optional["ActivationTokenModel"]] = relationship(
+        "ActivationTokenModel",
+        back_populates="user",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
+
+    password_reset_token: Mapped[Optional["PasswordResetTokenModel"]] = (
+        relationship(
+            "PasswordResetTokenModel",
+            back_populates="user",
+            uselist=False,
+            cascade="all, delete-orphan",
+        )
+    )
+
+    refresh_token: Mapped[list["RefreshTokenModel"]] = relationship(
+        "RefreshTokenModel",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+
+    profile: Mapped[Optional["UserProfileModel"]] = relationship(
+        "UserProfileModel", back_populates="user", uselist=False
+    )
 
     def __repr__(self):
         return f"<UserModel(id={self.id}, email={self.email}, is_active={self.is_active})>"
@@ -106,10 +136,61 @@ class UserProfileModel(Base):
         "UserModel", back_populates="profile"
     )
 
-    __table_args__ = (UniqueConstraint("user_id"),)
-
     def __repr__(self):
         return (
             f"<UserProfileModel(id={self.id}, first_name={self.first_name}, last_name={self.last_name}, "
             f"gender={self.gender}, date_of_birth={self.date_of_birth})>"
         )
+
+
+class TokenBaseModel(Base):
+    __abstract__ = True
+
+    id: Mapped[int] = mapped_column(
+        Integer, primary_key=True, autoincrement=True
+    )
+    token: Mapped[str] = mapped_column(
+        String(255), unique=True, nullable=False
+    )
+    expires_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc) + timedelta(days=1),
+    )
+
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+
+
+class ActivationTokenModel(TokenBaseModel):
+    __tablename__ = "activation_tokens"
+
+    user: Mapped[UserModel] = relationship(
+        "UserModel", back_populates="activation_token"
+    )
+
+    def __repr__(self):
+        return f"<ActivationTokenModel(id={self.id}, token={self.token}, expires_at={self.expires_at})>"
+
+
+class PasswordResetTokenModel(TokenBaseModel):
+    __tablename__ = "password_reset_tokens"
+
+    user: Mapped[UserModel] = relationship(
+        "UserModel", back_populates="password_reset_token"
+    )
+
+    def __repr__(self):
+        return f"<PasswordResetTokenModel(id={self.id}, token={self.token}, expires_at={self.expires_at})>"
+
+
+class RefreshTokenModel(TokenBaseModel):
+    __tablename__ = "refresh_tokens"
+
+    user: Mapped[UserModel] = relationship(
+        "UserModel", back_populates="refresh_token"
+    )
+
+    def __repr__(self):
+        return f"<RefreshTokenModel(id={self.id}, token={self.token}, expires_at={self.expires_at})>"
