@@ -1,12 +1,12 @@
 FROM python:3.11-slim
 
-# Setting environment variables for Python
+# ===== Environment =====
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV PIP_NO_CACHE_DIR=off
-ENV ALEMBIC_CONFIG=/usr/src/alembic/alembic.ini
+ENV ALEMBIC_CONFIG=/usr/src/alembic.ini
 
-# Installing dependencies
+# ===== System deps =====
 RUN apt update && apt install -y \
     gcc \
     libpq-dev \
@@ -15,36 +15,26 @@ RUN apt update && apt install -y \
     dos2unix \
     && apt clean
 
-# Install Poetry
+# ===== Poetry install =====
 RUN python -m pip install --upgrade pip && \
     pip install poetry
 
-# Copy dependency files
-COPY ./poetry.lock /usr/src/poetry/poetry.lock
-COPY ./pyproject.toml /usr/src/poetry/pyproject.toml
-COPY ./alembic.ini /usr/src/alembic/alembic.ini
+# ===== Copy dependency files =====
+COPY ./poetry.lock /usr/src/poetry.lock
+COPY ./pyproject.toml /usr/src/pyproject.toml
+COPY ./alembic.ini /usr/src/alembic.ini
 
-# Configure Poetry to avoid creating a virtual environment
+# ===== Poetry config =====
 RUN poetry config virtualenvs.create false
 
-# Selecting a working directory
-WORKDIR /usr/src/poetry
-
-# Install dependencies with Poetry
+WORKDIR /usr/src
 RUN poetry lock
 RUN poetry install --no-root --only main
 
-# Selecting a working directory
-WORKDIR /usr/src/fastapi
-
-# Copy the source code
-COPY ./src .
-
-# Copy commands
+# ===== Copy project =====
+COPY ./src ./src
 COPY ./commands /commands
 
-# Ensure Unix-style line endings for scripts
+# ===== Normalize scripts =====
 RUN dos2unix /commands/*.sh
-
-# Add execute bit to commands files
 RUN chmod +x /commands/*.sh
