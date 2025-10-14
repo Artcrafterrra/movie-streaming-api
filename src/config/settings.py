@@ -9,6 +9,8 @@ load_dotenv()
 
 
 class BaseAppSettings(BaseSettings):
+    ENVIRONMENT: str = os.getenv("ENVIRONMENT", "developing")
+
     BASE_DIR: Path = Path(__file__).parent.parent
     PATH_TO_DB: str = str(BASE_DIR / "database" / "source" / "theater.db")
     PATH_TO_MOVIES_CSV: str = str(
