@@ -12,8 +12,8 @@ class Cart(Base):
     user_id: Mapped[int] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=False
     )
-    items: Mapped[List["CartItem"]] = relationship("CartItem",
-        back_populates="cart", cascade="all, delete-orphan"
+    items: Mapped[List["CartItem"]] = relationship(
+        "CartItem", back_populates="cart", cascade="all, delete-orphan"
     )
 
 
@@ -32,7 +32,6 @@ class CartItem(Base):
         server_default=func.now(), nullable=False
     )
 
-    __table_args__ = (UniqueConstraint(
-        "cart_id", "movie_id", name="cart_movie_unique"
-    ),
+    __table_args__ = (
+        UniqueConstraint("cart_id", "movie_id", name="cart_movie_unique"),
     )
