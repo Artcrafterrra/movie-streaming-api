@@ -39,7 +39,7 @@ async def get_user_by_email(db: AsyncSession, email: str):
 async def register(
     user_data: UserRegisterRequestShema,
     db: AsyncSession = Depends(get_postgresql_db),
-    email_sender: EmailSender = Depends(get_accounts_email_notificator)
+    email_sender: EmailSender = Depends(get_accounts_email_notificator),
 ):
 
     existing_user = await get_user_by_email(db=db, email=user_data.email)
@@ -84,10 +84,7 @@ async def register(
             detail="An error occurred during user creation",
         ) from e
     activation_link = "http://localhost:8000/api/v1/auth/activate/"
-    await email_sender.send_activation_email(
-        new_user.email,
-        activation_link
-    )
+    await email_sender.send_activation_email(new_user.email, activation_link)
 
     return UserRegisterResponseSchema.model_validate(new_user)
 
