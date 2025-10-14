@@ -2,8 +2,10 @@ from database.models.base import Base
 from datetime import datetime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import ForeignKey, UniqueConstraint, func
-from typing import List
-from src.database.models.movies import Movie
+from typing import List, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from database.models.movies import Movie
 
 
 class Cart(Base):
