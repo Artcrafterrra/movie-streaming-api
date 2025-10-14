@@ -51,7 +51,7 @@ class OrderModel(Base):
 
     # Relationships
     user: Mapped[UserModel] = relationship(
-        "User",
+        "UserModel",
         back_populates="orders"
     )
     items: Mapped[list["OrderItemModel"]] = relationship(
@@ -91,10 +91,10 @@ class OrderItemModel(Base):
     # Relationships
     order: Mapped["OrderModel"] = relationship(
         "OrderModel",
-        back_populates="items"
+        back_populates="order_items"
     )
     movie: Mapped["Movie"] = relationship(
-        "MovieModel",
+        "Movie",
         back_populates="order_items"
     )
 
