@@ -19,7 +19,7 @@ from database.models.base import Base
 class OrderStatusEnum(str, Enum):
     PENDING = "pending"
     PAID = "paid"
-    CANCELLED = "canceled"
+    CANCELED = "canceled"
 
 
 class OrderModel(Base):
