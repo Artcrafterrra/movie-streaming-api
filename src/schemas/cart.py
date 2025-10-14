@@ -12,3 +12,7 @@ class CartRead(CartBase):
 
     class Config:
         from_attributes = True
+
+
+class CartCreate(CartRead):
+    pass
