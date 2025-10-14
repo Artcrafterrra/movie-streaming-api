@@ -19,7 +19,7 @@ from database.models.base import Base
 class OrderStatusEnum(str, Enum):
     PENDING = "pending"
     PAID = "paid"
-    CANCELLED = "cancelled"
+    CANCELLED = "canceled"
 
 
 class OrderModel(Base):
@@ -39,11 +39,10 @@ class OrderModel(Base):
         nullable=False,
         default=OrderStatusEnum.PENDING,
     )
-    total_amount: Mapped[float] = mapped_column(DECIMAL(10, 2), nullable=False)
+    total_amount: Mapped[float] = mapped_column(DECIMAL(10, 2))
 
-    user: Mapped[UserModel] = relationship(
-        "UserModel", back_populates="orders"
-    )
+    user: Mapped[UserModel] = relationship("UserModel",)
+
     items: Mapped[list["OrderItemModel"]] = relationship(
         "OrderItemModel",
         back_populates="order",
@@ -69,11 +68,9 @@ class OrderItemModel(Base):
     )
 
     order: Mapped["OrderModel"] = relationship(
-        "OrderModel", back_populates="order_items"
+        "OrderModel", back_populates="items"
     )
-    movie: Mapped["Movie"] = relationship(
-        "Movie", back_populates="order_items"
-    )
+    movie: Mapped["Movie"] = relationship("Movie",)
 
     __table_args__ = (
         UniqueConstraint(
