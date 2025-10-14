@@ -2,7 +2,6 @@ from database.models.base import Base
 from datetime import datetime, date, timezone, timedelta
 import enum
 from typing import Optional
-
 from sqlalchemy import (
     String,
     Boolean,
@@ -103,6 +102,22 @@ class UserModel(Base):
 
     profile: Mapped[Optional["UserProfileModel"]] = relationship(
         "UserProfileModel", back_populates="user", uselist=False
+    )
+
+    movie_likes: Mapped[list["MovieLike"]] = relationship(  # noqa
+        "MovieLike", back_populates="user", cascade="all, delete-orphan"
+    )
+
+    movie_comments: Mapped[list["MovieComment"]] = relationship(  # noqa
+        "MovieComment", back_populates="user", cascade="all, delete-orphan"
+    )
+
+    movie_ratings: Mapped[list["MovieRating"]] = relationship(  # noqa
+        "MovieRating", back_populates="user", cascade="all, delete-orphan"
+    )
+
+    favorites: Mapped[list["Favorite"]] = relationship(  # noqa
+        "Favorite", back_populates="user", cascade="all, delete-orphan"
     )
 
     def __repr__(self):

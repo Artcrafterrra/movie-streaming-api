@@ -1,5 +1,14 @@
 from database.models.base import Base
-from database.models.movies import Movie
+from database.models.movies import (
+    Movie,
+    Genre,
+    Star,
+    Director,
+    MovieLike,
+    MovieComment,
+    MovieRating,
+    Favorite,
+)
 from database.models.accounts import (
     UserGroupModel,
     UserModel,

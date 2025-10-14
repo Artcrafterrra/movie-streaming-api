@@ -3,6 +3,8 @@ from uuid import UUID
 from decimal import Decimal
 from pydantic import BaseModel, ConfigDict
 
+from database.models.movies import CertificationEnum
+
 
 class GenreSchema(BaseModel):
     id: int
@@ -37,7 +39,7 @@ class MovieListResponseSchema(BaseModel):
     gross: Optional[float]
     description: str
     price: Decimal
-    certification: Optional[str]
+    certification: CertificationEnum
 
     genres: List[GenreSchema] = []
     stars: List[StarSchema] = []
