@@ -48,6 +48,7 @@ async def get_postgresql_db() -> AsyncGenerator[AsyncSession, None]:
         yield session
         print("❌ PostgreSQL session closed")
 
+
 @asynccontextmanager
 async def get_postgresql_db_contextmanager() -> (
     AsyncGenerator[AsyncSession, None]
