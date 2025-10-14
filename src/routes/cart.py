@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from database import get_db
@@ -38,3 +38,12 @@ async def update_cart(cart_id: int, movies: list[CartItem], db: AsyncSession = D
     await db.commit()
     await db.refresh(new_cart)
     return new_cart
+
+@router.delete("/carts/{cart.id}/", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_cart(cart_id: int, db: AsyncSession = Depends(get_db)) -> Cart:
+    result = await db.execute(select(Cart).where(Cart.id == cart_id))
+    cart = result.scalar_one_or_none()
+    if not cart:
+        raise HTTPException(status_code=404, detail="Cart not found")
+    db.delete(cart)
+    await db.commit()
