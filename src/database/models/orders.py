@@ -41,7 +41,6 @@ class OrderModel(Base):
     )
     total_amount: Mapped[float] = mapped_column(DECIMAL(10, 2), nullable=False)
 
-    # Relationships
     user: Mapped[UserModel] = relationship(
         "UserModel", back_populates="orders"
     )
@@ -68,7 +67,7 @@ class OrderItemModel(Base):
     price_at_order: Mapped[float] = mapped_column(
         DECIMAL(10, 2), nullable=False
     )
-    # Relationships
+
     order: Mapped["OrderModel"] = relationship(
         "OrderModel", back_populates="order_items"
     )
