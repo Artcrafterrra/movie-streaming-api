@@ -3,6 +3,7 @@ from datetime import datetime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import ForeignKey, UniqueConstraint, func
 from typing import List
+from src.database.models.movies import Movie
 
 
 class Cart(Base):
