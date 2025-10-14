@@ -16,3 +16,7 @@ class CartRead(CartBase):
 
 class CartCreate(CartRead):
     pass
+
+
+class CartUpdate(BaseModel):
+    items_ids = List[int]
