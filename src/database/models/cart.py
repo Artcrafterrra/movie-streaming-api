@@ -28,6 +28,7 @@ class CartItem(Base):
     movie_id: Mapped[int] = mapped_column(
         ForeignKey("movies.id"), nullable=False
     )
+    movie: Mapped["Movie"] = relationship("Movie")
     added_at: Mapped[datetime] = mapped_column(
         server_default=func.now(), nullable=False
     )
