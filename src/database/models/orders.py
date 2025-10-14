@@ -41,7 +41,9 @@ class OrderModel(Base):
     )
     total_amount: Mapped[float] = mapped_column(DECIMAL(10, 2))
 
-    user: Mapped[UserModel] = relationship("UserModel",)
+    user: Mapped[UserModel] = relationship(
+        "UserModel",
+    )
 
     items: Mapped[list["OrderItemModel"]] = relationship(
         "OrderItemModel",
@@ -70,7 +72,9 @@ class OrderItemModel(Base):
     order: Mapped["OrderModel"] = relationship(
         "OrderModel", back_populates="items"
     )
-    movie: Mapped["Movie"] = relationship("Movie",)
+    movie: Mapped["Movie"] = relationship(
+        "Movie",
+    )
 
     __table_args__ = (
         UniqueConstraint(
