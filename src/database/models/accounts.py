@@ -104,19 +104,19 @@ class UserModel(Base):
         "UserProfileModel", back_populates="user", uselist=False
     )
 
-    movie_likes: Mapped[list["MovieLike"]] = relationship(
+    movie_likes: Mapped[list["MovieLike"]] = relationship(  # noqa
         "MovieLike", back_populates="user", cascade="all, delete-orphan"
     )
 
-    movie_comments: Mapped[list["MovieComment"]] = relationship(
+    movie_comments: Mapped[list["MovieComment"]] = relationship(  # noqa
         "MovieComment", back_populates="user", cascade="all, delete-orphan"
     )
 
-    movie_ratings: Mapped[list["MovieRating"]] = relationship(
+    movie_ratings: Mapped[list["MovieRating"]] = relationship(  # noqa
         "MovieRating", back_populates="user", cascade="all, delete-orphan"
     )
 
-    favorites: Mapped[list["Favorite"]] = relationship(
+    favorites: Mapped[list["Favorite"]] = relationship(  # noqa
         "Favorite", back_populates="user", cascade="all, delete-orphan"
     )
 
