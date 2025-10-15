@@ -580,7 +580,7 @@ async def update_director(
     await db.commit()
     await db.refresh(director)
     return {
-        "message": f"Director updated successfully",
+        "message": "Director updated successfully",
         "id": director.id,
         "name": director.name,
     }
