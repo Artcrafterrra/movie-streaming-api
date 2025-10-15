@@ -34,7 +34,10 @@ async def get_user_by_email(db: AsyncSession, email: str):
     )
     return result.scalar_one_or_none()
 
-async def get_current_user(user_id: int, db: AsyncSession = Depends(get_postgresql_db)):
+
+async def get_current_user(
+    user_id: int, db: AsyncSession = Depends(get_postgresql_db)
+):
     statement = select(UserModel).where(UserModel.id == user_id)
     result = await db.execute(statement)
     user = result.scalars().first()
@@ -42,13 +45,18 @@ async def get_current_user(user_id: int, db: AsyncSession = Depends(get_postgres
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User not found or unauthorized."
+            detail="User not found or unauthorized.",
         )
     return user
 
-async def moderator_required(current_user: UserModel = Depends(get_current_user)):
+
+async def moderator_required(
+    current_user: UserModel = Depends(get_current_user),
+):
     if current_user.role not in ("moderator", "admin"):
-        raise HTTPException(status_code=403, detail="Moderator or admin required.")
+        raise HTTPException(
+            status_code=403, detail="Moderator or admin required."
+        )
     return current_user
 
 
@@ -77,7 +85,7 @@ async def register(
     if not user_group:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="User group was not found",
+            detail="User group was not found.",
         )
 
     try:
@@ -102,7 +110,7 @@ async def register(
         await db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="An error occurred during user creation",
+            detail="An error occurred during user creation.",
         ) from e
     activation_link = f"http://localhost:8000/api/v1/auth/activate/?email={new_user.email}&token={activation_token.token}"
     await email_sender.send_activation_email(new_user.email, activation_link)
@@ -160,8 +168,58 @@ async def activate(
 
     login_link = "http://localhost:8000/api/v1/auth/login/"
 
-    await email_sender.send_activation_complete_email(
-        str(email), login_link
-    )
+    await email_sender.send_activation_complete_email(str(email), login_link)
 
     return MessageResponseSchema(message="User account activated.")
+
+
+@router.post(
+    "/resend-activation/",
+    response_model=MessageResponseSchema,
+    status_code=status.HTTP_200_OK,
+)
+async def resend_activation(
+    email: str,
+    db: AsyncSession = Depends(get_postgresql_db),
+    email_sender: EmailSender = Depends(get_accounts_email_notificator),
+):
+    user = await get_user_by_email(db=db, email=email)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found."
+        )
+
+    if user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User is already active.",
+        )
+
+    await db.execute(
+        select(ActivationTokenModel).where(
+            ActivationTokenModel.user_id == user.id
+        )
+    )
+    old_token_res = await db.execute(
+        select(ActivationTokenModel).where(
+            ActivationTokenModel.user_id == user.id
+        )
+    )
+    old_token = old_token_res.scalars().first()
+    if old_token:
+        await db.delete(old_token)
+
+    new_token = ActivationTokenModel(
+        user_id=user.id,
+        token=secrets.token_urlsafe(32),
+        expires_at=(datetime.utcnow() + timedelta(days=1)),
+    )
+    db.add(new_token)
+    await db.commit()
+
+    activation_link = f"http://localhost:8000/api/v1/auth/activate/?email={user.email}&token={new_token.token}"
+    await email_sender.send_activation_email(user.email, activation_link)
+
+    return MessageResponseSchema(
+        message="New email for account activation has been sent."
+    )
