@@ -159,3 +159,42 @@ class RatingResponseSchema(BaseModel):
     movie_id: int
     average_rating: float
     total_ratings: int
+
+
+class CommentCreateSchema(BaseModel):
+    body: str = Field(
+        ...,
+        min_length=2,
+        max_length=999,
+        description="Comment text",
+    )
+
+
+class CommentResponseSchema(BaseModel):
+    id: int
+    user_id: int
+    movie_id: int
+    body: str
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class MovieLikeRequestSchema(BaseModel):
+    value: int = Field(
+        ..., description="Reaction value: 1 = like, -1 = dislike, 0 = remove"
+    )
+
+    @classmethod
+    def validate_value(cls, v):
+        if v not in (-1, 0, 1):
+            raise ValueError("Reaction must be -1, 0, or 1")
+        return v
+
+
+class MovieLikeResponseSchema(BaseModel):
+    movie_id: int
+    likes_count: int
+    dislikes_count: int
+    total_score: int
+    message: str
