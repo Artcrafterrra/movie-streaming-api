@@ -5,7 +5,15 @@ from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload, joinedload
 
 from database import get_db, UserModel
-from database.models.movies import Movie, Genre, Star, Director, MovieRating
+from database.models.movies import (
+    Movie,
+    Genre,
+    Star,
+    Director,
+    MovieRating,
+    MovieComment,
+    MovieLike,
+)
 from routes.accounts import get_current_user
 from schemas.movies import (
     MovieListResponseSchema,
@@ -19,6 +27,10 @@ from schemas.movies import (
     StarCreateSchema,
     RatingCreateSchema,
     RatingResponseSchema,
+    CommentResponseSchema,
+    CommentCreateSchema,
+    MovieLikeResponseSchema,
+    MovieLikeRequestSchema,
 )
 
 router = APIRouter(prefix="/movies", tags=["Movies"])
@@ -205,6 +217,7 @@ async def create_movie(
 
         db.add(movie)
         await db.commit()
+        await db.refresh(movie)
 
         stmt = (
             select(Movie)
@@ -284,6 +297,7 @@ async def update_movie(
 
     try:
         await db.commit()
+        await db.refresh(movie_for_update)
 
         stmt = (
             select(Movie)
@@ -674,3 +688,198 @@ async def delete_movie_rating(
     await db.delete(rating)
     await db.commit()
     return None
+
+
+@router.post(
+    "/{movie_id}/comments/",
+    response_model=CommentResponseSchema,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_comment(
+    movie_id: int,
+    comment_data: CommentCreateSchema,
+    db: AsyncSession = Depends(get_db),
+    current_user: UserModel = Depends(get_current_user),
+):
+    stmt = select(Movie).where(Movie.id == movie_id)
+    movie = (await db.execute(stmt)).scalars().first()
+
+    if not movie:
+        raise HTTPException(status_code=404, detail="Movie not found.")
+
+    comment = MovieComment(
+        user_id=current_user.id,
+        movie_id=movie_id,
+        body=comment_data.body,
+    )
+
+    db.add(comment)
+    await db.commit()
+    await db.refresh(comment)
+    return comment
+
+
+@router.get(
+    "/{movie_id}/comments/",
+    response_model=list[CommentResponseSchema],
+    summary="Get all comments for a movie",
+)
+async def get_comments(
+    movie_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    stmt = (
+        select(MovieComment)
+        .where(MovieComment.movie_id == movie_id)
+        .order_by(MovieComment.created_at.desc())
+    )
+
+    result = await db.execute(stmt)
+    comments = result.scalars().unique().all()
+
+    if not comments:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="No comments found."
+        )
+
+    return comments
+
+
+@router.delete(
+    "/comments/{comment_id}/",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete your comment by ID",
+)
+async def delete_comment(
+    comment_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: UserModel = Depends(get_current_user),
+):
+    stmt = select(MovieComment).where(MovieComment.id == comment_id)
+    comment = (await db.execute(stmt)).scalars().first()
+
+    if not comment:
+        raise HTTPException(status_code=404, detail="Comment not found.")
+
+    if comment.user_id != current_user.id:
+        raise HTTPException(
+            status_code=403, detail="You can delete only your own comments."
+        )
+
+    await db.delete(comment)
+    await db.commit()
+    return None
+
+
+@router.post(
+    "/{movie_id}/reaction/",
+    response_model=MovieLikeResponseSchema,
+    status_code=status.HTTP_200_OK,
+    summary="Add, change, or remove a movie reaction.",
+    description="(1 = like / - 1 = dislike / 0 =  neutral)",
+)
+async def react_to_movie(
+    movie_id: int,
+    data: MovieLikeRequestSchema,
+    db: AsyncSession = Depends(get_db),
+    current_user: UserModel = Depends(get_current_user),
+):
+    movie = await db.scalar(select(Movie).where(Movie.id == movie_id))
+    if not movie:
+        raise HTTPException(status_code=404, detail="Movie not found.")
+
+    existing = await db.scalar(
+        select(MovieLike).where(
+            MovieLike.user_id == current_user.id,
+            MovieLike.movie_id == movie_id,
+        )
+    )
+
+    message = ""
+    if existing:
+        if data.value == 0:
+            await db.delete(existing)
+            message = "Reaction removed."
+        else:
+            existing.value = data.value
+            message = "Reaction updated."
+    else:
+        if data.value == 0:
+            message = "No reaction to remove."
+        else:
+            db.add(
+                MovieLike(
+                    user_id=current_user.id,
+                    movie_id=movie_id,
+                    value=data.value,
+                )
+            )
+            message = "Reaction added."
+
+    await db.commit()
+
+    likes = (
+        await db.scalar(
+            select(func.count()).where(
+                MovieLike.movie_id == movie_id, MovieLike.value == 1
+            )
+        )
+        or 0
+    )
+    dislikes = (
+        await db.scalar(
+            select(func.count()).where(
+                MovieLike.movie_id == movie_id, MovieLike.value == -1
+            )
+        )
+        or 0
+    )
+    total_score = likes - dislikes
+
+    return MovieLikeResponseSchema(
+        movie_id=movie_id,
+        likes_count=likes,
+        dislikes_count=dislikes,
+        total_score=total_score,
+        message=message,
+    )
+
+
+@router.get(
+    "/{movie_id}/reactions/",
+    response_model=MovieLikeResponseSchema,
+    summary="Get like/dislike statistics for a movie",
+)
+async def get_movie_reactions(
+    movie_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    movie = await db.scalar(select(Movie).where(Movie.id == movie_id))
+    if not movie:
+        raise HTTPException(status_code=404, detail="Movie not found.")
+
+    likes = (
+        await db.scalar(
+            select(func.count()).where(
+                MovieLike.movie_id == movie_id, MovieLike.value == 1
+            )
+        )
+        or 0
+    )
+    dislikes = (
+        await db.scalar(
+            select(func.count()).where(
+                MovieLike.movie_id == movie_id, MovieLike.value == -1
+            )
+        )
+        or 0
+    )
+    total_score = likes - dislikes
+
+    return MovieLikeResponseSchema(
+        movie_id=movie_id,
+        likes_count=likes,
+        dislikes_count=dislikes,
+        total_score=total_score,
+        message="Reaction stats fetched successfully.",
+    )
