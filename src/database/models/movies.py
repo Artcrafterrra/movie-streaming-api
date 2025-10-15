@@ -1,5 +1,6 @@
 import enum
 import uuid as uuid_pkg
+from datetime import datetime, timezone
 from sqlalchemy import (
     String,
     Integer,
@@ -11,6 +12,8 @@ from sqlalchemy import (
     Table,
     Column,
     ForeignKey,
+    DateTime,
+    CheckConstraint,
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -62,11 +65,11 @@ movie_genres = Table(
 
 
 class CertificationEnum(str, enum.Enum):
-    G = "G"  # General Audience
-    PG = "PG"  # Parental Guidance Suggested
-    PG13 = "PG-13"  # Parents Strongly Cautioned
-    R = "R"  # Restricted
-    NC17 = "NC-17"  # Adults Only
+    G = "G"
+    PG = "PG"
+    PG13 = "PG-13"
+    R = "R"
+    NC17 = "NC-17"
 
 
 class Movie(Base):
@@ -89,7 +92,7 @@ class Movie(Base):
     meta_score: Mapped[float | None] = mapped_column(Float)
     gross: Mapped[float | None] = mapped_column(Float)
     description: Mapped[str] = mapped_column(Text, nullable=False)
-    price: Mapped[float] = mapped_column(DECIMAL(10, 2), nullable=False)
+    price: Mapped[DECIMAL] = mapped_column(DECIMAL(10, 2), nullable=False)
 
     certification: Mapped[CertificationEnum] = mapped_column(
         Enum(CertificationEnum), nullable=False
@@ -103,6 +106,19 @@ class Movie(Base):
     )
     directors: Mapped[list["Director"]] = relationship(
         "Director", secondary=movie_directors, back_populates="movies"
+    )
+
+    likes: Mapped[list["MovieLike"]] = relationship(
+        "MovieLike", back_populates="movie", cascade="all, delete-orphan"
+    )
+    comments: Mapped[list["MovieComment"]] = relationship(
+        "MovieComment", back_populates="movie", cascade="all, delete-orphan"
+    )
+    ratings: Mapped[list["MovieRating"]] = relationship(
+        "MovieRating", back_populates="movie", cascade="all, delete-orphan"
+    )
+    favorites: Mapped[list["Favorite"]] = relationship(
+        "Favorite", back_populates="movie", cascade="all, delete-orphan"
     )
 
     def __repr__(self) -> str:
@@ -140,3 +156,97 @@ class Director(Base):
     movies: Mapped[list["Movie"]] = relationship(
         "Movie", secondary=movie_directors, back_populates="directors"
     )
+
+
+class MovieLike(Base):
+    __tablename__ = "movie_likes"
+    __table_args__ = (
+        UniqueConstraint("user_id", "movie_id", name="uq_user_movie_like"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE")
+    )
+    movie_id: Mapped[int] = mapped_column(
+        ForeignKey("movies.id", ondelete="CASCADE")
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+
+    user: Mapped["UserModel"] = relationship(  # noqa
+        back_populates="movie_likes"
+    )
+    movie: Mapped["Movie"] = relationship(back_populates="likes")
+
+
+class MovieComment(Base):
+    __tablename__ = "movie_comments"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE")
+    )
+    movie_id: Mapped[int] = mapped_column(
+        ForeignKey("movies.id", ondelete="CASCADE")
+    )
+    body: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+
+    user: Mapped["UserModel"] = relationship(  # noqa
+        back_populates="movie_comments"
+    )
+    movie: Mapped["Movie"] = relationship(back_populates="comments")
+
+
+class MovieRating(Base):
+    __tablename__ = "movie_ratings"
+    __table_args__ = (
+        UniqueConstraint("user_id", "movie_id", name="uq_user_movie_rating"),
+        CheckConstraint(
+            "rating >= 1 AND rating <= 10", name="check_rating_range"
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE")
+    )
+    movie_id: Mapped[int] = mapped_column(
+        ForeignKey("movies.id", ondelete="CASCADE")
+    )
+    rating: Mapped[int] = mapped_column(Integer, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+
+    user: Mapped["UserModel"] = relationship(  # noqa
+        back_populates="movie_ratings"
+    )
+    movie: Mapped["Movie"] = relationship(back_populates="ratings")
+
+
+class Favorite(Base):
+    __tablename__ = "favorites"
+    __table_args__ = (
+        UniqueConstraint("user_id", "movie_id", name="uq_user_favorite"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE")
+    )
+    movie_id: Mapped[int] = mapped_column(
+        ForeignKey("movies.id", ondelete="CASCADE")
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+
+    user: Mapped["UserModel"] = relationship(  # noqa
+        back_populates="favorites"
+    )
+    movie: Mapped["Movie"] = relationship(back_populates="favorites")
