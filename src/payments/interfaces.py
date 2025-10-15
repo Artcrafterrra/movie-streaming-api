@@ -27,12 +27,16 @@ class PaymentServiceInterface(ABC):
         pass
 
     @abstractmethod
-    async def cancel_payment(self, session: AsyncSession, *, payment_id: int) -> PaymentModel:
+    async def cancel_payment(
+        self, session: AsyncSession, *, payment_id: int
+    ) -> PaymentModel:
         """Mark a payment as canceled."""
         pass
 
     @abstractmethod
-    async def refund_payment(self, session: AsyncSession, *, payment_id: int) -> PaymentModel:
+    async def refund_payment(
+        self, session: AsyncSession, *, payment_id: int
+    ) -> PaymentModel:
         """Perform a full refund for the given payment."""
         pass
 

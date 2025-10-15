@@ -98,7 +98,9 @@ class PaymentService(PaymentServiceInterface):
         if requested_amount <= 0:
             raise AmountMismatchError("Amount must be greater than zero")
 
-        already_paid = await self.repo.sum_successful_payments(session, order.id)
+        already_paid = await self.repo.sum_successful_payments(
+            session, order.id
+        )
         remaining = _to_decimal(order.total_amount) - already_paid
         if requested_amount > remaining:
             raise AmountMismatchError(
@@ -184,5 +186,7 @@ class PaymentService(PaymentServiceInterface):
     ) -> Decimal:
         """Compute remaining amount to pay for a given order."""
         order = await self._load_order(session, order_id)
-        already_paid = await self.repo.sum_successful_payments(session, order.id)
+        already_paid = await self.repo.sum_successful_payments(
+            session, order.id
+        )
         return _to_decimal(order.total_amount) - already_paid
