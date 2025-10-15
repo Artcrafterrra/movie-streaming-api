@@ -16,6 +16,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
 
 from database.validators.accounts import validate_email
+from security.passwords import pwd_context
 
 
 class UserGroupEnum(str, enum.Enum):
@@ -125,6 +126,9 @@ class UserModel(Base):
 
     def has_group(self, group_name: UserGroupEnum) -> bool:
         return self.group.name == group_name
+
+    def verify_password(self, plain_password: str) -> bool:
+        return pwd_context.verify(plain_password, self._hashed_password)
 
     @validates("email")
     def validate_email(self, key, value) -> str:

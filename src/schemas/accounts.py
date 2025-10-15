@@ -6,7 +6,7 @@ from database.validators.accounts import (
 )
 
 
-class UserRegisterRequestShema(BaseModel):
+class BaseUserSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     email: EmailStr
@@ -23,6 +23,10 @@ class UserRegisterRequestShema(BaseModel):
         return validate_password_strength(value)
 
 
+class UserRegisterRequestShema(BaseUserSchema):
+    pass
+
+
 class UserRegisterResponseSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -37,3 +41,22 @@ class UserActivationRequestSchema(BaseModel):
 
 class MessageResponseSchema(BaseModel):
     message: str
+
+
+class UserLoginRequestSchema(BaseUserSchema):
+    pass
+
+
+class UserLoginResponseSchema(BaseModel):
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
+
+
+class TokenRefreshRequestSchema(BaseModel):
+    refresh_token: str
+
+
+class TokenRefreshResponseSchema(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
