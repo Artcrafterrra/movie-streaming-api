@@ -27,9 +27,7 @@ from schemas.orders import (
     OrderDetailResponseSchema,
     OrderCancelResponseSchema,
 )
-
-from core.security import get_current_user
-
+from routes.accounts import get_current_user
 
 router = APIRouter(prefix="/orders", tags=["orders"])
 
