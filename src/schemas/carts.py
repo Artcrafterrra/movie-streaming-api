@@ -5,6 +5,16 @@ from pydantic import BaseModel, field_validator, ConfigDict
 from schemas.movies import MovieListResponseSchema
 
 
+class CartItemWithMovie(BaseModel):
+
+    id: int
+    movie_id: int
+    added_at: datetime
+    movie: MovieListResponseSchema
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class AddToCartRequest(BaseModel):
 
     movie_id: int
@@ -15,16 +25,6 @@ class AddToCartRequest(BaseModel):
         if movie_id <= 0:
             raise ValueError("Movie ID must be a positive integer")
         return movie_id
-
-
-class CartItemWithMovie(BaseModel):
-
-    id: int
-    movie_id: int
-    added_at: datetime
-    movie: MovieListResponseSchema
-
-    model_config = ConfigDict(from_attributes=True)
 
 
 class CartWithMovies(BaseModel):
