@@ -112,7 +112,10 @@ async def register(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="An error occurred during user creation.",
         ) from e
-    activation_link = f"http://localhost:8000/api/v1/auth/activate/?email={new_user.email}&token={activation_token.token}"
+    activation_link = (
+        f"http://localhost:8000/api/v1/auth/activate/"
+        f"?email={new_user.email}&token={activation_token.token}"
+    )
     await email_sender.send_activation_email(new_user.email, activation_link)
 
     return UserRegisterResponseSchema.model_validate(new_user)
