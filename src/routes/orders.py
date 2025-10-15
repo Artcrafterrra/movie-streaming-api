@@ -25,6 +25,7 @@ from schemas.orders import (
     OrderListItemSchema,
     OrderItemDetailSchema,
     OrderDetailResponseSchema,
+    OrderCancelResponseSchema,
 )
 
 from core.security import get_current_user
@@ -271,7 +272,12 @@ async def get_order_by_id(
     return OrderDetailResponseSchema.model_validate(order)
 
 
-@router.patch("/{order_id}/cancel/", response_model=OrderResponseSchema)
+@router.patch(
+    "/{order_id}/cancel/",
+    response_model=OrderCancelResponseSchema,
+    summary="Cancel an order",
+    description="Cancel a pending order. Only the owner (or admin) can cancel it.",
+)
 async def cancel_order(
     order_id: int,
     cancel_data: OrderCancelRequestSchema,
@@ -283,23 +289,32 @@ async def cancel_order(
     )
     order = result.scalar_one_or_none()
     if not order:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Order not found"
-        )
+        raise HTTPException(status_code=404, detail="Order not found")
     if order.user_id != current_user.id:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You don't have access to this order.",
+            status_code=403, detail="You don't have access to this order."
         )
     if order.status != OrderStatusEnum.PENDING:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=400,
             detail=f"Can only cancel PENDING orders. Current status: {order.status}.",
         )
     order.status = OrderStatusEnum.CANCELED
     await db.commit()
     await db.refresh(order)
-    return order
+
+    message = f"Order {order.id} was successfully cancelled"
+    if cancel_data.reason:
+        message += f". Reason: {cancel_data.reason}"
+    return OrderCancelResponseSchema(
+        id=order.id,
+        user_id=order.user_id,
+        created_at=order.created_at,
+        status=order.status,
+        total_amount=order.total_amount,
+        order_items=order.items,
+        message=message,
+    )
 
 
 @router.post("/{order_id}/confirm-payment", response_model=OrderResponseSchema)
