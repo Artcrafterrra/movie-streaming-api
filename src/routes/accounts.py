@@ -20,7 +20,7 @@ from notifications import EmailSender
 from schemas.accounts import (
     UserRegisterResponseSchema,
     UserRegisterRequestShema,
-    MessageResponseSchema
+    MessageResponseSchema,
 )
 from security.passwords import hash_password
 from config.settings import base_app_settings
@@ -220,7 +220,10 @@ async def resend_activation(
     db.add(new_token)
     await db.commit()
 
-    activation_link = f"http://{base_app_settings.HOST_NAME}/api/v1/auth/activate/?email={user.email}&token={new_token.token}"
+    activation_link = (
+        f"http://{base_app_settings.HOST_NAME}/api/v1/auth/activate/"
+        f"?email={user.email}&token={new_token.token}"
+    )
     await email_sender.send_activation_email(user.email, activation_link)
 
     return MessageResponseSchema(

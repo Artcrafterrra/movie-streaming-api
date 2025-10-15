@@ -80,4 +80,5 @@ class TestingSettings(BaseAppSettings):
             str(self.BASE_DIR / "database" / "seed_data" / "test_data.csv"),
         )
 
+
 base_app_settings = BaseAppSettings()
