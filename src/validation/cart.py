@@ -1,4 +1,4 @@
-from src.database.models.cart import Cart, CartItem
+from database.models.cart import Cart, CartItem
 from fastapi.exceptions import RequestValidationError
 
 
@@ -8,4 +8,8 @@ def cart_movie_validator(cart: Cart, cart_item: CartItem):
 
 
 def check_purchased_movies(cart: Cart, cart_item: CartItem):
+    pass
+
+
+def check_movie_certification(cart: Cart, cart_item: CartItem):
     pass

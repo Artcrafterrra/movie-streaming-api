@@ -4,18 +4,25 @@ from typing import List
 
 class CartBase(BaseModel):
     user_id: int
-    items_ids: List[int]
 
 
-class CartRead(CartBase):
+class CartItemRead(BaseModel):
     id: int
+    movie_id: int
 
     model_config = ConfigDict(from_attributes=True)
 
 
-class CartCreate(CartRead):
-    pass
+class CartRead(CartBase):
+    id: int
+    items: List[CartItemRead]
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class CartCreate(BaseModel):
+    user_id: int
 
 
 class CartUpdate(BaseModel):
-    items_ids = List[int]
+    movie_ids: List[int]
