@@ -1,5 +1,6 @@
 import enum
 import uuid as uuid_pkg
+from datetime import datetime, timezone
 from sqlalchemy import (
     String,
     Integer,
@@ -17,7 +18,7 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from database.models.base import Base
-from datetime import datetime, timezone
+
 
 movie_stars = Table(
     "movie_stars",
@@ -64,11 +65,11 @@ movie_genres = Table(
 
 
 class CertificationEnum(str, enum.Enum):
-    G = "G"  # General Audience
-    PG = "PG"  # Parental Guidance Suggested
-    PG13 = "PG-13"  # Parents Strongly Cautioned
-    R = "R"  # Restricted
-    NC17 = "NC-17"  # Adults Only
+    G = "G"
+    PG = "PG"
+    PG13 = "PG-13"
+    R = "R"
+    NC17 = "NC-17"
 
 
 class Movie(Base):
@@ -174,8 +175,8 @@ class MovieLike(Base):
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
 
-    user = relationship("User", back_populates="movie_likes")
-    movie = relationship("Movie", back_populates="likes")
+    user: Mapped["UserModel"] = relationship(back_populates="movie_likes")
+    movie: Mapped["Movie"] = relationship(back_populates="likes")
 
 
 class MovieComment(Base):
@@ -193,8 +194,8 @@ class MovieComment(Base):
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
 
-    user = relationship("User", back_populates="movie_comments")
-    movie = relationship("Movie", back_populates="comments")
+    user: Mapped["UserModel"] = relationship(back_populates="movie_comments")
+    movie: Mapped["Movie"] = relationship(back_populates="comments")
 
 
 class MovieRating(Base):
@@ -218,8 +219,8 @@ class MovieRating(Base):
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
 
-    user = relationship("User", back_populates="movie_ratings")
-    movie = relationship("Movie", back_populates="ratings")
+    user: Mapped["UserModel"] = relationship(back_populates="movie_ratings")
+    movie: Mapped["Movie"] = relationship(back_populates="ratings")
 
 
 class Favorite(Base):
@@ -238,5 +239,6 @@ class Favorite(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
-    user = relationship("User", back_populates="favorites")
-    movie = relationship("Movie", back_populates="favorites")
+
+    user: Mapped["UserModel"] = relationship(back_populates="favorites")
+    movie: Mapped["Movie"] = relationship(back_populates="favorites")
