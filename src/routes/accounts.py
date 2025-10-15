@@ -1,10 +1,12 @@
 from datetime import datetime, timezone, timedelta
 import secrets
+from typing import cast
 
 from fastapi import APIRouter, status, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import joinedload
 
 from config.dependencies import get_accounts_email_notificator
 from database import (
@@ -18,6 +20,8 @@ from notifications import EmailSender
 from schemas.accounts import (
     UserRegisterResponseSchema,
     UserRegisterRequestShema,
+    MessageResponseSchema,
+    UserActivationRequestSchema,
 )
 from security.passwords import hash_password
 
@@ -29,6 +33,23 @@ async def get_user_by_email(db: AsyncSession, email: str):
         select(UserModel).where(UserModel.email == email)
     )
     return result.scalar_one_or_none()
+
+async def get_current_user(user_id: int, db: AsyncSession = Depends(get_postgresql_db)):
+    statement = select(UserModel).where(UserModel.id == user_id)
+    result = await db.execute(statement)
+    user = result.scalars().first()
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found or unauthorized."
+        )
+    return user
+
+async def moderator_required(current_user: UserModel = Depends(get_current_user)):
+    if current_user.role not in ("moderator", "admin"):
+        raise HTTPException(status_code=403, detail="Moderator or admin required.")
+    return current_user
 
 
 @router.post(
@@ -83,12 +104,64 @@ async def register(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="An error occurred during user creation",
         ) from e
-    activation_link = "http://localhost:8000/api/v1/auth/activate/"
+    activation_link = f"http://localhost:8000/api/v1/auth/activate/?email={new_user.email}&token={activation_token.token}"
     await email_sender.send_activation_email(new_user.email, activation_link)
 
     return UserRegisterResponseSchema.model_validate(new_user)
 
 
-@router.post("/activate/")
-async def activate():
-    pass
+@router.get(
+    "/activate/",
+    response_model=MessageResponseSchema,
+    status_code=status.HTTP_200_OK,
+)
+async def activate(
+    email: str,
+    token: str,
+    db: AsyncSession = Depends(get_postgresql_db),
+    email_sender: EmailSender = Depends(get_accounts_email_notificator),
+):
+    statement = (
+        select(ActivationTokenModel)
+        .options(joinedload(ActivationTokenModel.user))
+        .join(UserModel)
+        .where(
+            UserModel.email == email,
+            ActivationTokenModel.token == token,
+        )
+    )
+    result = await db.execute(statement)
+    token_record = result.scalars().first()
+
+    now_utc = datetime.now(timezone.utc)
+    if (
+        not token_record
+        or cast(datetime, token_record.expires_at).replace(tzinfo=timezone.utc)
+        < now_utc
+    ):
+        if token_record:
+            await db.delete(token_record)
+            await db.commit()
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid or expired activation token.",
+            )
+
+    user = token_record.user
+    if user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User account is already active.",
+        )
+
+    user.is_active = True
+    await db.delete(token_record)
+    await db.commit()
+
+    login_link = "http://localhost:8000/api/v1/auth/login/"
+
+    await email_sender.send_activation_complete_email(
+        str(email), login_link
+    )
+
+    return MessageResponseSchema(message="User account activated.")
