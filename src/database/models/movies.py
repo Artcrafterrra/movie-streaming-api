@@ -175,7 +175,9 @@ class MovieLike(Base):
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
 
-    user: Mapped["UserModel"] = relationship(back_populates="movie_likes")
+    user: Mapped["UserModel"] = relationship(
+        back_populates="movie_likes"
+    )  # noqa
     movie: Mapped["Movie"] = relationship(back_populates="likes")
 
 
@@ -194,7 +196,9 @@ class MovieComment(Base):
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
 
-    user: Mapped["UserModel"] = relationship(back_populates="movie_comments")
+    user: Mapped["UserModel"] = relationship(
+        back_populates="movie_comments"
+    )  # noqa
     movie: Mapped["Movie"] = relationship(back_populates="comments")
 
 
@@ -219,7 +223,9 @@ class MovieRating(Base):
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
 
-    user: Mapped["UserModel"] = relationship(back_populates="movie_ratings")
+    user: Mapped["UserModel"] = relationship(
+        back_populates="movie_ratings"
+    )  # noqa
     movie: Mapped["Movie"] = relationship(back_populates="ratings")
 
 
@@ -240,5 +246,7 @@ class Favorite(Base):
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
 
-    user: Mapped["UserModel"] = relationship(back_populates="favorites")
+    user: Mapped["UserModel"] = relationship(
+        back_populates="favorites"
+    )  # noqa
     movie: Mapped["Movie"] = relationship(back_populates="favorites")
