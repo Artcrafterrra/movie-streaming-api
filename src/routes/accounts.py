@@ -20,10 +20,10 @@ from notifications import EmailSender
 from schemas.accounts import (
     UserRegisterResponseSchema,
     UserRegisterRequestShema,
-    MessageResponseSchema,
-    UserActivationRequestSchema,
+    MessageResponseSchema
 )
 from security.passwords import hash_password
+from config.settings import base_app_settings
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -113,7 +113,7 @@ async def register(
             detail="An error occurred during user creation.",
         ) from e
     activation_link = (
-        f"http://localhost:8000/api/v1/auth/activate/"
+        f"http://{base_app_settings.HOST_NAME}/api/v1/auth/activate/"
         f"?email={new_user.email}&token={activation_token.token}"
     )
     await email_sender.send_activation_email(new_user.email, activation_link)
@@ -169,7 +169,7 @@ async def activate(
     await db.delete(token_record)
     await db.commit()
 
-    login_link = "http://localhost:8000/api/v1/auth/login/"
+    login_link = f"http://{base_app_settings.HOST_NAME}/api/v1/auth/login/"
 
     await email_sender.send_activation_complete_email(str(email), login_link)
 
@@ -220,7 +220,7 @@ async def resend_activation(
     db.add(new_token)
     await db.commit()
 
-    activation_link = f"http://localhost:8000/api/v1/auth/activate/?email={user.email}&token={new_token.token}"
+    activation_link = f"http://{base_app_settings.HOST_NAME}/api/v1/auth/activate/?email={user.email}&token={new_token.token}"
     await email_sender.send_activation_email(user.email, activation_link)
 
     return MessageResponseSchema(
