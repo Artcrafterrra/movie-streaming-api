@@ -162,6 +162,7 @@ class MovieLike(Base):
     __tablename__ = "movie_likes"
     __table_args__ = (
         UniqueConstraint("user_id", "movie_id", name="uq_user_movie_like"),
+        CheckConstraint("value IN (-1, 0, 1)", name="check_like_value_range"),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -171,6 +172,7 @@ class MovieLike(Base):
     movie_id: Mapped[int] = mapped_column(
         ForeignKey("movies.id", ondelete="CASCADE")
     )
+    value: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
