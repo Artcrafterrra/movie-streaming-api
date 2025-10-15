@@ -198,3 +198,28 @@ class MovieLikeResponseSchema(BaseModel):
     dislikes_count: int
     total_score: int
     message: str
+
+
+class GenreWithCountSchema(BaseModel):
+    id: int
+    name: str
+    movie_count: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class FavoriteMovieSchema(BaseModel):
+    id: int
+    movie_id: int
+    created_at: datetime
+    movie: MovieListResponseSchema
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class FavoriteResponseSchema(BaseModel):
+    favorites: List[FavoriteMovieSchema]
+    total_items: int
+    total_pages: int
+    page: int
+    per_page: int
