@@ -2,7 +2,7 @@ from datetime import datetime, timezone, timedelta
 import secrets
 from typing import cast
 
-from fastapi import APIRouter, status, Depends, HTTPException
+from fastapi import APIRouter, status, Depends, HTTPException, Response
 from sqlalchemy import select, delete
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -28,6 +28,8 @@ from schemas.accounts import (
     MessageResponseSchema,
     UserLoginResponseSchema,
     UserLoginRequestSchema,
+    TokenRefreshResponseSchema,
+    TokenRefreshRequestSchema,
 )
 from security.passwords import hash_password
 from config.settings import base_app_settings, BaseAppSettings
@@ -247,7 +249,6 @@ async def resend_activation(
 async def login(
     login_data: UserLoginRequestSchema,
     db: AsyncSession = Depends(get_postgresql_db),
-    settings: BaseAppSettings = Depends(get_settings),
     jwt_manager: JWTAuthManager = Depends(get_jwt_auth_manager),
 ):
     user = await get_user_by_email(db=db, email=str(login_data.email))
@@ -289,7 +290,6 @@ async def login(
 
 @router.post(
     "/logout/",
-    response_model=MessageResponseSchema,
     status_code=status.HTTP_204_NO_CONTENT,
 )
 async def logout(
@@ -301,4 +301,4 @@ async def logout(
     )
     await db.commit()
 
-    return MessageResponseSchema(message="You're now tokenless.")
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
