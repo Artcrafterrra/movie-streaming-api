@@ -206,7 +206,6 @@ async def clear_cart(
             status_code=status.HTTP_404_NOT_FOUND, detail="Cart not found"
         )
 
-    # Видаляємо всі елементи з кошика
     stmt = select(CartItem).where(CartItem.cart_id == cart.id)
     result = await db.execute(stmt)
     cart_items = result.scalars().all()
