@@ -255,8 +255,8 @@ async def validate_cart_for_checkout(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Cart is empty"
         )
 
-    validation_errors = []
     valid_items = []
+    validation_errors = []
 
     for item in cart.items:
         if not item.movie:
