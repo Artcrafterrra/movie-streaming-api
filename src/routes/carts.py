@@ -19,7 +19,7 @@ from schemas.carts import (
 )
 from schemas.movies import MovieListResponseSchema
 
-router = APIRouter(prefix="/cart", tags=["cart"])
+router = APIRouter(prefix="/cart", tags=["Cart"])
 
 
 async def _check_movie_already_purchased(
@@ -40,7 +40,7 @@ async def _check_movie_already_purchased(
     return result.scalars().first() is not None
 
 
-@router.post("/items", status_code=status.HTTP_201_CREATED)
+@router.post("/items/", status_code=status.HTTP_201_CREATED)
 async def add_to_cart(
     request: AddToCartRequest,
     current_user: UserModel = Depends(get_current_user),
@@ -94,7 +94,7 @@ async def add_to_cart(
     return {"message": "Movie added to cart successfully"}
 
 
-@router.get("", response_model=CartWithMovies)
+@router.get("/", response_model=CartWithMovies)
 async def get_cart(
     current_user: UserModel = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -153,7 +153,7 @@ async def get_cart(
     )
 
 
-@router.delete("/items/{movie_id}", status_code=status.HTTP_200_OK)
+@router.delete("/items/{movie_id}/", status_code=status.HTTP_200_OK)
 async def remove_item_from_cart(
     movie_id: int,
     current_user: UserModel = Depends(get_current_user),
@@ -192,7 +192,7 @@ async def remove_item_from_cart(
     return {"message": "Movie removed from cart successfully"}
 
 
-@router.delete("", status_code=status.HTTP_200_OK)
+@router.delete("/", status_code=status.HTTP_200_OK)
 async def clear_cart(
     current_user: UserModel = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -218,7 +218,7 @@ async def clear_cart(
     return {"message": "Cart cleared successfully"}
 
 
-@router.get("/count")
+@router.get("/count/")
 async def get_cart_count(
     current_user: UserModel = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -237,7 +237,7 @@ async def get_cart_count(
     return {"count": len(items)}
 
 
-@router.get("/validate", response_model=CartValidationResponse)
+@router.get("/validate/", response_model=CartValidationResponse)
 async def validate_cart_for_checkout(
     current_user: UserModel = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
