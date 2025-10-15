@@ -104,4 +104,5 @@ def get_s3_storage_client(
         access_key=settings.S3_STORAGE_ACCESS_KEY,
         secret_key=settings.S3_STORAGE_SECRET_KEY,
         bucket_name=settings.S3_BUCKET_NAME,
+        region_name=settings.AWS_REGION,
     )

@@ -38,17 +38,39 @@ class BaseAppSettings(BaseSettings):
 
     HOST_NAME: str = os.getenv("HOST_NAME", "127.0.0.1:8000")
 
-    S3_STORAGE_HOST: str = os.getenv("MINIO_HOST", "minio-theater")
-    S3_STORAGE_PORT: int = os.getenv("MINIO_PORT", 9000)
-    S3_STORAGE_ACCESS_KEY: str = os.getenv("MINIO_ROOT_USER", "minioadmin")
-    S3_STORAGE_SECRET_KEY: str = os.getenv(
-        "MINIO_ROOT_PASSWORD", "some_password"
+    # S3 Configuration - flexible for both MinIO and AWS S3
+    AWS_REGION: str = os.getenv("AWS_REGION", "us-east-1")
+    S3_STORAGE_HOST: str = os.getenv(
+        "S3_STORAGE_HOST", os.getenv("MINIO_HOST", "")
     )
-    S3_BUCKET_NAME: str = os.getenv("MINIO_STORAGE", "theater-storage")
+    S3_STORAGE_PORT: int = int(
+        os.getenv("S3_STORAGE_PORT", os.getenv("MINIO_PORT", 9000))
+    )
+    S3_STORAGE_ACCESS_KEY: str = os.getenv(
+        "AWS_ACCESS_KEY_ID", os.getenv("MINIO_ROOT_USER", "minioadmin")
+    )
+    S3_STORAGE_SECRET_KEY: str = os.getenv(
+        "AWS_SECRET_ACCESS_KEY",
+        os.getenv("MINIO_ROOT_PASSWORD", "some_password"),
+    )
+    S3_BUCKET_NAME: str = os.getenv(
+        "S3_BUCKET_NAME", os.getenv("MINIO_STORAGE", "theater-storage")
+    )
+    S3_USE_SSL: bool = os.getenv("S3_USE_SSL", "False").lower() == "true"
 
     @property
-    def S3_STORAGE_ENDPOINT(self) -> str:  # NOQA N802
-        return f"http://{self.S3_STORAGE_HOST}:{self.S3_STORAGE_PORT}"
+    def S3_STORAGE_ENDPOINT(self) -> str | None:  # NOQA N802
+        """
+        Returns S3 endpoint URL for custom S3-compatible services (like MinIO).
+        Returns None for AWS S3 (uses default endpoints).
+        """
+        if not self.S3_STORAGE_HOST:
+            return None  # Use default AWS S3 endpoints
+
+        protocol = "https" if self.S3_USE_SSL else "http"
+        if self.S3_STORAGE_PORT in [80, 443]:
+            return f"{protocol}://{self.S3_STORAGE_HOST}"
+        return f"{protocol}://{self.S3_STORAGE_HOST}:{self.S3_STORAGE_PORT}"
 
 
 class Settings(BaseAppSettings):
