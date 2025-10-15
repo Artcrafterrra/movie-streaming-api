@@ -29,7 +29,7 @@ from schemas.orders import (
 )
 from routes.accounts import get_current_user
 
-router = APIRouter(prefix="/orders", tags=["orders"])
+router = APIRouter(prefix="/orders", tags=["Orders"])
 
 
 async def _validate_movies_exist(
