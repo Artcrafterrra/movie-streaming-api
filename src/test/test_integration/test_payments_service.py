@@ -27,7 +27,7 @@ async def engine():
     )
     async with eng.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-    
+
     try:
         yield eng
     finally:
@@ -92,7 +92,9 @@ def movie_factory(session):
 
 @pytest_asyncio.fixture()
 def order_with_items_factory(session, movie_factory):
-    async def _create_order(user: UserModel, items_count: int = 2) -> OrderModel:
+    async def _create_order(
+        user: UserModel, items_count: int = 2
+    ) -> OrderModel:
         movies = [await movie_factory() for _ in range(items_count)]
         total_amount = sum(
             (Decimal(str(m.price)) for m in movies), Decimal("0.00")

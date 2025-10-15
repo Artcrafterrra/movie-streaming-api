@@ -70,11 +70,11 @@ class PaymentRepository:
     ) -> List[PaymentModel]:
         """List payments for a specific user (most recent first)."""
         result = await session.execute(
-                select(PaymentModel)
-                .where(PaymentModel.user_id == user_id)
-                .options(selectinload(PaymentModel.items))
-                .order_by(PaymentModel.created_at.desc())
-            )
+            select(PaymentModel)
+            .where(PaymentModel.user_id == user_id)
+            .options(selectinload(PaymentModel.items))
+            .order_by(PaymentModel.created_at.desc())
+        )
         return list(result.scalars().all())
 
     async def list_order_payments(
@@ -82,11 +82,11 @@ class PaymentRepository:
     ) -> List[PaymentModel]:
         """List payments for a specific order (chronological)."""
         result = await session.execute(
-                select(PaymentModel)
-                .where(PaymentModel.order_id == order_id)
-                .options(selectinload(PaymentModel.items))
-                .order_by(PaymentModel.created_at.asc())
-            )
+            select(PaymentModel)
+            .where(PaymentModel.order_id == order_id)
+            .options(selectinload(PaymentModel.items))
+            .order_by(PaymentModel.created_at.asc())
+        )
         return list(result.scalars().all())
 
     async def save_payment(
