@@ -95,3 +95,55 @@ class MovieCreateSchema(BaseModel):
         if any(i <= 0 for i in v):
             raise ValueError("IDs must be positive integers")
         return v
+
+
+class MovieUpdateSchema(BaseModel):
+    name: Optional[str] = Field(min_length=1, max_length=250)
+    year: Optional[int] = Field(ge=1888, le=datetime.now().year + 1)
+    time: Optional[int] = Field(gt=0)
+    imdb: Optional[float] = Field(ge=0, le=10)
+    votes: Optional[int] = Field(ge=0)
+    meta_score: Optional[float] = Field(None, ge=0, le=100)
+    gross: Optional[float] = Field(None, ge=0)
+    description: Optional[str] = Field(min_length=10)
+    price: Optional[float] = Field(ge=0)
+    certification: Optional[CertificationEnum]
+    genres: List[int] = []
+    stars: List[int] = []
+    directors: List[int] = []
+
+
+class GenreBaseSchema(BaseModel):
+    name: str = Field(..., min_length=2, max_length=100)
+
+
+class GenreCreateSchema(BaseModel):
+    name: str = Field(..., min_length=2, max_length=100)
+
+
+class GenreUpdateSchema(BaseModel):
+    name: str | None = Field(None, min_length=2, max_length=100)
+
+
+class GenreResponseSchema(BaseModel):
+    id: int
+    name: str = Field(..., min_length=2, max_length=100)
+    model_config = ConfigDict(from_attributes=True)
+
+
+class StarBaseSchema(BaseModel):
+    name: str = Field(..., min_length=2, max_length=100)
+
+
+class StarCreateSchema(BaseModel):
+    name: str = Field(..., min_length=2, max_length=100)
+
+
+class StarUpdateSchema(BaseModel):
+    name: str | None = Field(None, min_length=2, max_length=100)
+
+
+class StarResponseSchema(BaseModel):
+    id: int
+    name: str = Field(..., min_length=2, max_length=100)
+    model_config = ConfigDict(from_attributes=True)
