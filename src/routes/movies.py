@@ -4,8 +4,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload, joinedload
 
-from database import get_db
-from database.models.movies import Movie, Genre, Star, Director
+from database import get_db, UserModel
+from database.models.movies import Movie, Genre, Star, Director, MovieRating
+from routes.accounts import get_current_user
 from schemas.movies import (
     MovieListResponseSchema,
     MovieDetailResponseSchema,
@@ -16,6 +17,8 @@ from schemas.movies import (
     GenreCreateSchema,
     StarResponseSchema,
     StarCreateSchema,
+    RatingCreateSchema,
+    RatingResponseSchema,
 )
 
 router = APIRouter(prefix="/movies", tags=["Movies"])
@@ -567,5 +570,107 @@ async def delete_actor(
         )
 
     await db.delete(actor)
+    await db.commit()
+    return None
+
+
+@router.post(
+    "/{movie_id}/rating/",
+    summary="Rate a movie (create or update)",
+)
+async def rate_movie(
+    movie_id: int,
+    rating_data: RatingCreateSchema,
+    db: AsyncSession = Depends(get_db),
+    current_user: UserModel = Depends(get_current_user),
+):
+    movie_stmt = select(Movie).where(Movie.id == movie_id)
+    movie = (await db.execute(movie_stmt)).scalars().first()
+
+    if not movie:
+        raise HTTPException(status_code=404, detail="Movie not found.")
+
+    stmt = select(MovieRating).where(
+        MovieRating.user_id == current_user.id,
+        MovieRating.movie_id == movie_id,
+    )
+    existing = (await db.execute(stmt)).scalars().first()
+
+    if existing:
+        existing.rating = rating_data.rating
+        await db.commit()
+        return {
+            "message": "Rating updated successfully.",
+            "movie_id": movie_id,
+            "rating": rating_data.rating,
+        }
+
+    new_rating = MovieRating(
+        user_id=current_user.id,
+        movie_id=movie_id,
+        rating=rating_data.rating,
+    )
+    db.add(new_rating)
+    await db.commit()
+    return {
+        "message": "Rating created successfully.",
+        "movie_id": movie_id,
+        "rating": rating_data.rating,
+    }
+
+
+@router.get(
+    "/{movie_id}/rating/",
+    response_model=RatingResponseSchema,
+    summary="Get average rating and total count for a movie",
+)
+async def get_movie_rating(
+    movie_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    stmt = select(
+        func.avg(MovieRating.rating).label("average_rating"),
+        func.count(MovieRating.id).label("total_ratings"),
+    ).where(MovieRating.movie_id == movie_id)
+
+    result = await db.execute(stmt)
+    avg, total = result.first()
+
+    if not total or total == 0:
+        return RatingResponseSchema(
+            movie_id=movie_id,
+            average_rating=0.0,
+            total_ratings=0,
+        )
+
+    return RatingResponseSchema(
+        movie_id=movie_id,
+        average_rating=round(float(avg), 1),
+        total_ratings=total,
+    )
+
+
+@router.delete(
+    "/{movie_id}/rating/",
+    summary="Remove your rating for a movie",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def delete_movie_rating(
+    movie_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: UserModel = Depends(get_current_user),
+):
+    stmt = select(MovieRating).where(
+        MovieRating.movie_id == movie_id,
+        MovieRating.user_id == current_user.id,
+    )
+    rating = (await db.execute(stmt)).scalars().first()
+
+    if not rating:
+        raise HTTPException(
+            status_code=404, detail="Rating not found for this user."
+        )
+
+    await db.delete(rating)
     await db.commit()
     return None
