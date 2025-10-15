@@ -133,5 +133,9 @@ class OrderCancelRequestSchema(BaseModel):
     reason: Optional[str] = None
 
 
+class OrderCancelResponseSchema(OrderResponseSchema):
+    message: str
+
+
 class OrderConfirmPaymentSchema(BaseModel):
     payment_id: str
