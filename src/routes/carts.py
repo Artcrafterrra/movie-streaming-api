@@ -25,7 +25,6 @@ router = APIRouter(prefix="/cart", tags=["cart"])
 async def _check_movie_already_purchased(
     user_id: int, movie_id: int, db: AsyncSession
 ) -> bool:
-    """Перевіряє, чи користувач уже купував цей фільм"""
     stmt = (
         select(OrderItemModel)
         .join(OrderModel)
@@ -47,8 +46,6 @@ async def add_to_cart(
     current_user: UserModel = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Додати фільм до кошика з валідацією"""
-    # Перевіряємо, чи існує фільм
     stmt = select(Movie).where(Movie.id == request.movie_id)
     result = await db.execute(stmt)
     movie = result.scalars().first()
@@ -58,7 +55,6 @@ async def add_to_cart(
             status_code=status.HTTP_404_NOT_FOUND, detail="Movie not found"
         )
 
-    # Перевіряємо, чи користувач уже купував цей фільм
     if await _check_movie_already_purchased(
         current_user.id, request.movie_id, db
     ):
@@ -67,7 +63,6 @@ async def add_to_cart(
             detail="Movie already purchased",
         )
 
-    # Отримуємо або створюємо кошик
     stmt = select(Cart).where(Cart.user_id == current_user.id)
     result = await db.execute(stmt)
     cart = result.scalars().first()
@@ -78,7 +73,6 @@ async def add_to_cart(
         await db.commit()
         await db.refresh(cart)
 
-    # Перевіряємо, чи вже є цей фільм у кошику
     stmt = select(CartItem).where(
         and_(
             CartItem.cart_id == cart.id, CartItem.movie_id == request.movie_id
@@ -93,7 +87,6 @@ async def add_to_cart(
             detail="Movie already in cart",
         )
 
-    # Додаємо фільм до кошика
     cart_item = CartItem(cart_id=cart.id, movie_id=request.movie_id)
     db.add(cart_item)
     await db.commit()
@@ -106,7 +99,6 @@ async def get_cart(
     current_user: UserModel = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Отримати кошик з повною інформацією та загальною сумою"""
     stmt = (
         select(Cart)
         .options(
@@ -167,14 +159,12 @@ async def remove_item_from_cart(
     current_user: UserModel = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Видалити конкретний фільм з кошика"""
     if movie_id <= 0:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Movie ID must be a positive integer",
         )
 
-    # Отримуємо кошик користувача
     stmt = select(Cart).where(Cart.user_id == current_user.id)
     result = await db.execute(stmt)
     cart = result.scalars().first()
@@ -184,7 +174,6 @@ async def remove_item_from_cart(
             status_code=status.HTTP_404_NOT_FOUND, detail="Cart not found"
         )
 
-    # Знаходимо елемент у кошику
     stmt = select(CartItem).where(
         and_(CartItem.cart_id == cart.id, CartItem.movie_id == movie_id)
     )
@@ -197,7 +186,6 @@ async def remove_item_from_cart(
             detail="Movie not found in cart",
         )
 
-    # Видаляємо елемент з кошика
     await db.delete(cart_item)
     await db.commit()
 
@@ -209,7 +197,6 @@ async def clear_cart(
     current_user: UserModel = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Очистити весь кошик"""
     stmt = select(Cart).where(Cart.user_id == current_user.id)
     result = await db.execute(stmt)
     cart = result.scalars().first()
@@ -237,7 +224,6 @@ async def get_cart_count(
     current_user: UserModel = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Отримати кількість елементів у кошику"""
     stmt = select(Cart).where(Cart.user_id == current_user.id)
     result = await db.execute(stmt)
     cart = result.scalars().first()
@@ -257,7 +243,6 @@ async def validate_cart_for_checkout(
     current_user: UserModel = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Валідація кошика перед оформленням замовлення"""
     stmt = (
         select(Cart)
         .options(joinedload(Cart.items).joinedload(CartItem.movie))
@@ -275,14 +260,12 @@ async def validate_cart_for_checkout(
     valid_items = []
 
     for item in cart.items:
-        # Перевіряємо, чи фільм існує
         if not item.movie:
             validation_errors.append(
                 f"Movie with ID {item.movie_id} not found"
             )
             continue
 
-        # Перевіряємо, чи користувач уже купував цей фільм
         if await _check_movie_already_purchased(
             current_user.id, item.movie_id, db
         ):
@@ -315,7 +298,6 @@ async def get_all_carts(
     _: UserModel = Depends(moderator_required),
     db: AsyncSession = Depends(get_db),
 ):
-    """Отримати всі кошики користувачів (тільки для модераторів/адмінів)"""
 
     stmt = select(Cart).options(
         joinedload(Cart.items).joinedload(CartItem.movie)
@@ -324,7 +306,6 @@ async def get_all_carts(
     if user_id:
         stmt = stmt.where(Cart.user_id == user_id)
 
-    # Фільтруємо тільки непорожні кошики
     stmt = stmt.join(CartItem).distinct()
 
     count_stmt = select(Cart).join(CartItem).distinct()
