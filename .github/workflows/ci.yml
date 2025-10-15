@@ -60,4 +60,5 @@ jobs:
 
       - name: Run all tests
         run: |
+            export PYTHONPATH="$PYTHONPATH:$(pwd)/src"
             poetry run pytest
