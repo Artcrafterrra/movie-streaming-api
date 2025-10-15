@@ -147,3 +147,15 @@ class StarResponseSchema(BaseModel):
     id: int
     name: str = Field(..., min_length=2, max_length=100)
     model_config = ConfigDict(from_attributes=True)
+
+
+class RatingCreateSchema(BaseModel):
+    rating: int = Field(
+        ..., ge=1, le=10, description="User rating between 1 and 10"
+    )
+
+
+class RatingResponseSchema(BaseModel):
+    movie_id: int
+    average_rating: float
+    total_ratings: int
