@@ -37,16 +37,22 @@ class PaymentServiceInterface(ABC):
         pass
 
     @abstractmethod
-    def get_user_payments(self, session: Session, *, user_id: int) -> list[Any]:
+    def get_user_payments(
+        self, session: Session, *, user_id: int
+    ) -> list[Any]:
         """Return all payments belonging to the given user."""
         pass
 
     @abstractmethod
-    def get_order_payments(self, session: Session, *, order_id: int) -> list[Any]:
+    def get_order_payments(
+        self, session: Session, *, order_id: int
+    ) -> list[Any]:
         """Return all payments associated with the given order."""
         pass
 
     @abstractmethod
-    def compute_order_remaining_to_pay(self, session: Session, *, order_id: int) -> Decimal:
+    def compute_order_remaining_to_pay(
+        self, session: Session, *, order_id: int
+    ) -> Decimal:
         """Compute the remaining amount to be paid for the order."""
         pass

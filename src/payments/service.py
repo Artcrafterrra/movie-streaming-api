@@ -43,7 +43,9 @@ class PaymentService(PaymentServiceInterface):
             raise OrderNotFoundError(f"Order {order_id} not found")
         return order
 
-    def _assert_order_belongs_to_user(self, order: OrderModel, user_id: int) -> None:
+    def _assert_order_belongs_to_user(
+        self, order: OrderModel, user_id: int
+    ) -> None:
         """Ensure the order is owned by the acting user."""
         if order.user_id != user_id:
             raise OrderOwnershipError("Order does not belong to the user")
@@ -53,14 +55,18 @@ class PaymentService(PaymentServiceInterface):
         if order.status == OrderStatusEnum.CANCELED:
             raise OrderStatusError("Order is canceled and cannot be paid")
 
-    def _recalculate_and_update_order_status(self, session: Session, order: OrderModel) -> None:
+    def _recalculate_and_update_order_status(
+        self, session: Session, order: OrderModel
+    ) -> None:
         """Recompute aggregate payment state and update order status accordingly."""
         paid_total = self.repo.sum_successful_payments(session, order.id)
         order_total = _to_decimal(order.total_amount)
         if paid_total >= order_total and order.status != OrderStatusEnum.PAID:
             order.status = OrderStatusEnum.PAID
             session.add(order)
-        elif paid_total == Decimal("0") and order.status == OrderStatusEnum.PAID:
+        elif (
+            paid_total == Decimal("0") and order.status == OrderStatusEnum.PAID
+        ):
             order.status = OrderStatusEnum.PENDING
             session.add(order)
 
@@ -75,7 +81,9 @@ class PaymentService(PaymentServiceInterface):
         status: PaymentStatusEnum = PaymentStatusEnum.SUCCESSFUL,
     ) -> PaymentModel:
         """Create a payment, persist snapshot items, and update order status if necessary."""
-        if external_payment_id and self.repo.external_payment_exists(session, external_payment_id):
+        if external_payment_id and self.repo.external_payment_exists(
+            session, external_payment_id
+        ):
             raise DuplicateExternalPaymentError(
                 "Payment with this external_payment_id already exists"
             )
@@ -120,7 +128,9 @@ class PaymentService(PaymentServiceInterface):
         session.flush()
         return payment
 
-    def cancel_payment(self, session: Session, *, payment_id: int) -> PaymentModel:
+    def cancel_payment(
+        self, session: Session, *, payment_id: int
+    ) -> PaymentModel:
         """Mark a non-refunded payment as canceled and recalculate order status."""
         payment = self.repo.get_payment_by_id(session, payment_id)
         if not payment:
@@ -138,7 +148,9 @@ class PaymentService(PaymentServiceInterface):
         session.flush()
         return payment
 
-    def refund_payment(self, session: Session, *, payment_id: int) -> PaymentModel:
+    def refund_payment(
+        self, session: Session, *, payment_id: int
+    ) -> PaymentModel:
         """Perform a full refund for a payment and recalculate order status."""
         payment = self.repo.get_payment_by_id(session, payment_id)
         if not payment:
@@ -153,15 +165,21 @@ class PaymentService(PaymentServiceInterface):
         session.flush()
         return payment
 
-    def get_user_payments(self, session: Session, *, user_id: int) -> list[PaymentModel]:
+    def get_user_payments(
+        self, session: Session, *, user_id: int
+    ) -> list[PaymentModel]:
         """Return all payments for the given user."""
         return self.repo.list_user_payments(session, user_id)
 
-    def get_order_payments(self, session: Session, *, order_id: int) -> list[PaymentModel]:
+    def get_order_payments(
+        self, session: Session, *, order_id: int
+    ) -> list[PaymentModel]:
         """Return all payments linked to the given order."""
         return self.repo.list_order_payments(session, order_id)
 
-    def compute_order_remaining_to_pay(self, session: Session, *, order_id: int) -> Decimal:
+    def compute_order_remaining_to_pay(
+        self, session: Session, *, order_id: int
+    ) -> Decimal:
         """Compute remaining amount to pay for a given order."""
         order = self._load_order(session, order_id)
         already_paid = self.repo.sum_successful_payments(session, order.id)
