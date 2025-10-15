@@ -3,7 +3,7 @@ import secrets
 from typing import cast
 
 from fastapi import APIRouter, status, Depends, HTTPException
-from sqlalchemy import select
+from sqlalchemy import select, delete
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
@@ -17,7 +17,8 @@ from database import (
     UserModel,
     UserGroupModel,
     UserGroupEnum,
-    ActivationTokenModel, RefreshTokenModel,
+    ActivationTokenModel,
+    RefreshTokenModel,
 )
 from database.session_postgresql import get_postgresql_db
 from notifications import EmailSender
@@ -253,13 +254,13 @@ async def login(
     if not user or not user.verify_password(login_data.password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid email or password."
+            detail="Invalid email or password.",
         )
 
     if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Account is not activated yet."
+            detail="Account is not activated yet.",
         )
 
     jwt_refresh_token = jwt_manager.create_refresh_token({"user_id": user.id})
@@ -277,11 +278,27 @@ async def login(
         await db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="An error occured while processing the request."
+            detail="An error occured while processing the request.",
         )
 
     jwt_access_token = jwt_manager.create_access_token({"user_id": user.id})
     return UserLoginResponseSchema(
-        access_token=jwt_access_token,
-        refresh_token=jwt_refresh_token
+        access_token=jwt_access_token, refresh_token=jwt_refresh_token
     )
+
+
+@router.post(
+    "/logout/",
+    response_model=MessageResponseSchema,
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def logout(
+    user: UserModel = Depends(get_current_user),
+    db: AsyncSession = Depends(get_postgresql_db),
+):
+    await db.execute(
+        delete(RefreshTokenModel).where(RefreshTokenModel.user_id == user.id)
+    )
+    await db.commit()
+
+    return MessageResponseSchema(message="You're now tokenless.")
