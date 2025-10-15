@@ -11,6 +11,11 @@ from schemas.movies import (
     MovieDetailResponseSchema,
     PaginatedMoviesResponse,
     MovieCreateSchema,
+    MovieUpdateSchema,
+    GenreResponseSchema,
+    GenreCreateSchema,
+    StarResponseSchema,
+    StarCreateSchema,
 )
 
 router = APIRouter(prefix="/movies", tags=["Movies"])
@@ -218,3 +223,349 @@ async def create_movie(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid input data.",
         )
+
+
+@router.patch(
+    "/{movie_id}/",
+    summary="Update the movie",
+    response_model=MovieDetailResponseSchema,
+)
+async def update_movie(
+    movie_id: int,
+    movie_data: MovieUpdateSchema,
+    db: AsyncSession = Depends(get_db),
+):
+    stmt = (
+        select(Movie)
+        .options(
+            selectinload(Movie.genres),
+            selectinload(Movie.stars),
+            selectinload(Movie.directors),
+        )
+        .where(Movie.id == movie_id)
+    )
+    result = await db.execute(stmt)
+    movie_for_update = result.scalars().first()
+
+    if not movie_for_update:
+        raise HTTPException(
+            status_code=404, detail="Movie with the given ID was not found."
+        )
+
+    data = movie_data.model_dump(exclude_unset=True)
+
+    for field, value in data.items():
+        if field not in {"genres", "stars", "directors"}:
+            setattr(movie_for_update, field, value)
+
+    if "genres" in data:
+        result = await db.execute(
+            select(Genre).where(Genre.id.in_(data["genres"]))
+        )
+        movie_for_update.genres.clear()
+        movie_for_update.genres.extend(result.scalars().all())
+
+    if "stars" in data:
+        result = await db.execute(
+            select(Star).where(Star.id.in_(data["stars"]))
+        )
+        movie_for_update.stars.clear()
+        movie_for_update.stars.extend(result.scalars().all())
+
+    if "directors" in data:
+        result = await db.execute(
+            select(Director).where(Director.id.in_(data["directors"]))
+        )
+        movie_for_update.directors.clear()
+        movie_for_update.directors.extend(result.scalars().all())
+
+    try:
+        await db.commit()
+
+        stmt = (
+            select(Movie)
+            .options(
+                selectinload(Movie.genres),
+                selectinload(Movie.stars),
+                selectinload(Movie.directors),
+            )
+            .where(Movie.id == movie_for_update.id)
+        )
+        refreshed = (await db.execute(stmt)).scalars().first()
+
+        return MovieDetailResponseSchema.model_validate(refreshed)
+
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid input data.",
+        )
+
+
+@router.delete(
+    "/{movie_id}/",
+    summary="Delete a movie by ID",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def delete_movie(
+    movie_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    stmt = select(Movie).where(Movie.id == movie_id)
+    result = await db.execute(stmt)
+    movie = result.scalars().first()
+
+    if not movie:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Movie with the given ID was not found.",
+        )
+
+    await db.delete(movie)
+    await db.commit()
+    return None
+
+
+@router.get(
+    "/genres/",
+    response_model=list[GenreResponseSchema],
+    summary="Get list of all genres",
+    status_code=status.HTTP_200_OK,
+)
+async def get_genres_list(db: AsyncSession = Depends(get_db)):
+    stmt = select(Genre).order_by(Genre.id.asc())
+    result = await db.execute(stmt)
+    genres = result.scalars().all()
+
+    if not genres:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No genres found.",
+        )
+
+    return [GenreResponseSchema.model_validate(g) for g in genres]
+
+
+@router.get(
+    "/genres/{genre_id}/",
+    response_model=GenreResponseSchema,
+    summary="Get genre by id",
+    status_code=status.HTTP_200_OK,
+)
+async def get_genre_by_id(genre_id: int, db: AsyncSession = Depends(get_db)):
+
+    stmt = select(Genre).where(Genre.id == genre_id)
+    result = await db.execute(stmt)
+    genre = result.scalars().first()
+
+    if not genre:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Genre with the given ID was not found.",
+        )
+
+    return GenreResponseSchema.model_validate(genre)
+
+
+@router.post(
+    "/genres/",
+    response_model=GenreResponseSchema,
+    summary="Create a new genre",
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_new_genre(
+    genre_data: GenreCreateSchema,
+    db: AsyncSession = Depends(get_db),
+):
+    existing_stmt = select(Genre).where(Genre.name == genre_data.name)
+    existing_result = await db.execute(existing_stmt)
+    existing_genre = existing_result.scalars().first()
+
+    if existing_genre:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Genre '{genre_data.name}' already exists.",
+        )
+
+    new_genre = Genre(name=genre_data.name)
+
+    db.add(new_genre)
+    await db.commit()
+    await db.refresh(new_genre)
+
+    return GenreResponseSchema.model_validate(new_genre)
+
+
+@router.patch(
+    "/genres/{genre_id}/",
+    response_model=GenreResponseSchema,
+    summary="Update genre by ID",
+    status_code=status.HTTP_200_OK,
+)
+async def update_genre(
+    genre_id: int,
+    genre_data: GenreCreateSchema,
+    db: AsyncSession = Depends(get_db),
+):
+    stmt = select(Genre).where(Genre.id == genre_id)
+    result = await db.execute(stmt)
+    genre = result.scalars().first()
+
+    if not genre:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Genre with the given ID was not found.",
+        )
+
+    genre.name = genre_data.name
+    await db.commit()
+    await db.refresh(genre)
+    return GenreResponseSchema.model_validate(genre)
+
+
+@router.delete(
+    "/genres/{genre_id}/",
+    summary="Delete genre by ID",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def delete_genre(
+    genre_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    stmt = select(Genre).where(Genre.id == genre_id)
+    result = await db.execute(stmt)
+    genre = result.scalars().first()
+
+    if not genre:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Genre with the given ID was not found.",
+        )
+
+    await db.delete(genre)
+    await db.commit()
+    return None
+
+
+@router.get(
+    "/actors/",
+    response_model=list[StarResponseSchema],
+    summary="Get list of all actors",
+    status_code=status.HTTP_200_OK,
+)
+async def get_actors_list(db: AsyncSession = Depends(get_db)):
+    stmt = select(Star).order_by(Star.id)
+    result = await db.execute(stmt)
+    actors = result.scalars().all()
+
+    if not actors:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No actors found.",
+        )
+
+    return [StarResponseSchema.model_validate(a) for a in actors]
+
+
+@router.get(
+    "/actors/{actor_id}/",
+    response_model=StarResponseSchema,
+    summary="Get actor by id",
+    status_code=status.HTTP_200_OK,
+)
+async def get_actor_by_id(
+    actor_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    stmt = select(Star).where(Star.id == actor_id)
+    result = await db.execute(stmt)
+    actor = result.scalars().first()
+
+    if not actor:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Actor with the given ID was not found.",
+        )
+
+    return StarResponseSchema.model_validate(actor)
+
+
+@router.post(
+    "/actors/",
+    response_model=StarResponseSchema,
+    summary="Create a new actor",
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_new_actor(
+    actor_data: StarCreateSchema,
+    db: AsyncSession = Depends(get_db),
+):
+    existing_stmt = select(Star).where(Star.name == actor_data.name)
+    existing_result = await db.execute(existing_stmt)
+    existing_actor = existing_result.scalars().first()
+
+    if existing_actor:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Actor '{actor_data.name}' already exists.",
+        )
+
+    new_actor = Star(name=actor_data.name)
+
+    db.add(new_actor)
+    await db.commit()
+    await db.refresh(new_actor)
+
+    return StarResponseSchema.model_validate(new_actor)
+
+
+@router.patch(
+    "/actors/{actor_id}/",
+    response_model=StarResponseSchema,
+    summary="Update actor by ID",
+    status_code=status.HTTP_200_OK,
+)
+async def update_actor(
+    actor_id: int,
+    actor_data: StarCreateSchema,
+    db: AsyncSession = Depends(get_db),
+):
+    stmt = select(Star).where(Star.id == actor_id)
+    result = await db.execute(stmt)
+    actor = result.scalars().first()
+
+    if not actor:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Actor with the given ID was not found.",
+        )
+
+    actor.name = actor_data.name
+    await db.commit()
+    await db.refresh(actor)
+    return StarResponseSchema.model_validate(actor)
+
+
+@router.delete(
+    "/actors/{actor_id}/",
+    summary="Delete actor by ID",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def delete_actor(
+    actor_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    stmt = select(Star).where(Star.id == actor_id)
+    result = await db.execute(stmt)
+    actor = result.scalars().first()
+
+    if not actor:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Actor with the given ID was not found.",
+        )
+
+    await db.delete(actor)
+    await db.commit()
+    return None
