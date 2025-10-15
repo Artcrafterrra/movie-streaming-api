@@ -8,12 +8,16 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
-from config.dependencies import get_accounts_email_notificator
+from config import get_settings
+from config.dependencies import (
+    get_accounts_email_notificator,
+    get_jwt_auth_manager,
+)
 from database import (
     UserModel,
     UserGroupModel,
     UserGroupEnum,
-    ActivationTokenModel,
+    ActivationTokenModel, RefreshTokenModel,
 )
 from database.session_postgresql import get_postgresql_db
 from notifications import EmailSender
@@ -21,9 +25,12 @@ from schemas.accounts import (
     UserRegisterResponseSchema,
     UserRegisterRequestShema,
     MessageResponseSchema,
+    UserLoginResponseSchema,
+    UserLoginRequestSchema,
 )
 from security.passwords import hash_password
-from config.settings import base_app_settings
+from config.settings import base_app_settings, BaseAppSettings
+from security.token_manager import JWTAuthManager
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -228,4 +235,53 @@ async def resend_activation(
 
     return MessageResponseSchema(
         message="New email for account activation has been sent."
+    )
+
+
+@router.post(
+    "/login/",
+    response_model=UserLoginResponseSchema,
+    status_code=status.HTTP_201_CREATED,
+)
+async def login(
+    login_data: UserLoginRequestSchema,
+    db: AsyncSession = Depends(get_postgresql_db),
+    settings: BaseAppSettings = Depends(get_settings),
+    jwt_manager: JWTAuthManager = Depends(get_jwt_auth_manager),
+):
+    user = await get_user_by_email(db=db, email=str(login_data.email))
+    if not user or not user.verify_password(login_data.password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid email or password."
+        )
+
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Account is not activated yet."
+        )
+
+    jwt_refresh_token = jwt_manager.create_refresh_token({"user_id": user.id})
+
+    try:
+        refresh_token = RefreshTokenModel(
+            user_id=user.id,
+            token=jwt_refresh_token,
+            expires_at=(datetime.utcnow() + timedelta(days=1)),
+        )
+        db.add(refresh_token)
+        await db.flush()
+        await db.commit()
+    except SQLAlchemyError:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An error occured while processing the request."
+        )
+
+    jwt_access_token = jwt_manager.create_access_token({"user_id": user.id})
+    return UserLoginResponseSchema(
+        access_token=jwt_access_token,
+        refresh_token=jwt_refresh_token
     )
