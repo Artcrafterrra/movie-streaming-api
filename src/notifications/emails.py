@@ -67,8 +67,6 @@ class EmailSender(EmailSenderInterface):
                 start_tls=self._use_tls,
             )
             await smtp.connect()
-            if self._use_tls:
-                await smtp.starttls()
             await smtp.login(self._email, self._password)
             await smtp.sendmail(self._email, [recipient], message.as_string())
             await smtp.quit()
