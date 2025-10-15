@@ -60,4 +60,4 @@ jobs:
 
       - name: Run all tests
         run: |
-            poetry run pytest src/tests/
+            poetry run pytest
