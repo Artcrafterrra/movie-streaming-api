@@ -316,21 +316,24 @@ async def refresh(
     jwt_manager: JWTAuthManager = Depends(get_jwt_auth_manager),
 ):
     try:
-        decoded_token = jwt_manager.decode_refresh_token(token_data.refresh_token)
+        decoded_token = jwt_manager.decode_refresh_token(
+            token_data.refresh_token
+        )
         user_id = decoded_token.get("user_id")
     except BaseSecurityError as error:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(error)
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)
         )
 
-    statement = select(RefreshTokenModel).filter_by(token=token_data.refresh_token)
+    statement = select(RefreshTokenModel).filter_by(
+        token=token_data.refresh_token
+    )
     result = await db.execute(statement)
     refresh_token = result.scalar_one_or_none()
     if not refresh_token:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Refresh token not found."
+            detail="Refresh token not found.",
         )
 
     statement = select(UserModel).filter_by(id=user_id)
@@ -338,8 +341,7 @@ async def refresh(
     user = result.scalar_one_or_none()
     if not user:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found."
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found."
         )
 
     new_access_token = jwt_manager.create_access_token({"user_id": user_id})
