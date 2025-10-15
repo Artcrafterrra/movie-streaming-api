@@ -60,9 +60,5 @@ jobs:
 
       - name: Run all tests
         run: |
-          if [ -d "src/tests" ]; then
-            poetry run pytest src/tests/ -v || true
-            echo "Tests execution completed"
-          else
-            echo "No tests directory found, skipping tests"
-          fi
+            export PYTHONPATH="$PYTHONPATH:$(pwd)/src"
+            poetry run pytest
