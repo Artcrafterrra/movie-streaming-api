@@ -4,6 +4,7 @@ from typing import cast
 
 from fastapi import APIRouter, status, Depends, HTTPException, Response
 from sqlalchemy import select, delete
+from sqlalchemy.orm import selectinload
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
@@ -49,8 +50,12 @@ async def get_user_by_email(db: AsyncSession, email: str):
 async def get_current_user(
     user_id: int, db: AsyncSession = Depends(get_postgresql_db)
 ):
-    statement = select(UserModel).where(UserModel.id == user_id)
-    result = await db.execute(statement)
+    stmt = (
+        select(UserModel)
+        .where(UserModel.id == user_id)
+        .options(selectinload(UserModel.group))
+    )
+    result = await db.execute(stmt)
     user = result.scalars().first()
 
     if not user:
@@ -64,9 +69,13 @@ async def get_current_user(
 async def moderator_required(
     current_user: UserModel = Depends(get_current_user),
 ):
-    if current_user.role not in ("moderator", "admin"):
+    if current_user.group.name not in (
+        UserGroupEnum.MODERATOR,
+        UserGroupEnum.ADMIN,
+    ):
         raise HTTPException(
-            status_code=403, detail="Moderator or admin required."
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Moderator or admin privileges required.",
         )
     return current_user
 
