@@ -1,34 +1,33 @@
 import os
+import sys
 
-from database.models.base import Base
-from database.models.accounts import (
-    UserModel,
-    UserGroupModel,
-    UserGroupEnum,
-    ActivationTokenModel,
-    PasswordResetTokenModel,
-    RefreshTokenModel,
-    UserProfileModel,
-)
-from database.models.movies import (
-    Movie,
-    CertificationEnum,
-    Genre,
-    Star,
-    Director,
-)
-from database.session_sqlite import reset_sqlite_database as reset_database
-from database.validators import accounts as accounts_validators
 
-environment = os.getenv("ENVIRONMENT", "developing")
+def detect_environment() -> str:
+    if "pytest" in sys.argv[0] or "pytest" in " ".join(sys.argv):
+        return "testing"
+
+    env = os.getenv("ENVIRONMENT")
+    if env:
+        return env.lower()
+
+    return "development"
+
+
+environment = detect_environment()
 
 if environment == "testing":
     from database.session_sqlite import (
-        get_sqlite_db_contextmanager as get_db_contextmanager,
         get_sqlite_db as get_db,
+        reset_sqlite_database as reset_database,
     )
 else:
     from database.session_postgresql import (
-        get_postgresql_db_contextmanager as get_db_contextmanager,
         get_postgresql_db as get_db,
+        reset_postgresql_database as reset_database,
     )
+
+print(f"[database] Using environment: {environment}")
+
+
+from database.models.accounts import UserModel  # noqa
+from database.models.movies import Movie  # noqa

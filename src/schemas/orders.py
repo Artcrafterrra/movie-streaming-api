@@ -20,7 +20,7 @@ class OrderResponseSchema(BaseModel):
 
 
 class OrderCreateSchema(BaseModel):
-    movie_ids: List[int] = Field(..., min_items=1)
+    movie_ids: List[int] = Field(..., min_length=1)
 
 
 class OrderMovieSchema(BaseModel):
