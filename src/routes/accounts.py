@@ -19,7 +19,8 @@ from database.models import (
     UserGroupModel,
     UserGroupEnum,
     ActivationTokenModel,
-    RefreshTokenModel, UserProfileModel,
+    RefreshTokenModel,
+    UserProfileModel,
 )
 from database import get_db
 from exceptions import BaseSecurityError
@@ -122,7 +123,7 @@ async def register(
             avatar=None,
             gender=None,
             date_of_birth=None,
-            info=None
+            info=None,
         )
         db.add(new_profile)
 
