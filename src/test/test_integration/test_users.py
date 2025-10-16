@@ -16,14 +16,11 @@ async def test_user_register_success(client, db_session, monkeypatch):
     await db_session.refresh(user_group)
 
     mock_email_sender = AsyncMock()
-    app.dependency_overrides[
-        get_accounts_email_notificator
-    ] = lambda: mock_email_sender
+    app.dependency_overrides[get_accounts_email_notificator] = (
+        lambda: mock_email_sender
+    )
 
-    payload = {
-        "email": "user@example.com",
-        "password": "userPassword!12"
-    }
+    payload = {"email": "user@example.com", "password": "userPassword!12"}
 
     response = await client.post("/api/v1/auth/register/", json=payload)
     assert response.status_code == 201
@@ -47,7 +44,7 @@ async def test_user_register_email_exists(client, db_session):
     existing_user = UserModel(
         email="user@example.com",
         _hashed_password="hashedPassword",
-        group_id=user_group.id
+        group_id=user_group.id,
     )
     db_session.add(existing_user)
     await db_session.commit()
@@ -56,17 +53,15 @@ async def test_user_register_email_exists(client, db_session):
     response = await client.post("/api/v1/auth/register/", json=payload)
 
     assert response.status_code == 409
-    assert response.json()["detail"] == "A user with this email already exists."
+    assert (
+        response.json()["detail"] == "A user with this email already exists."
+    )
 
 
 @pytest.mark.asyncio
 async def test_user_register_no_user_group(client, db_session):
-    payload = {
-        "email": "user@example.com",
-        "password": "userPassword!12"
-    }
+    payload = {"email": "user@example.com", "password": "userPassword!12"}
     response = await client.post("/api/v1/auth/register/", json=payload)
 
     assert response.status_code == 500
     assert response.json()["detail"] == "User group was not found."
-    
