@@ -44,7 +44,7 @@ class OrderModel(Base):
         default=lambda: datetime.now(timezone.utc),
     )
 
-    user: Mapped["UserModel"] = relationship(back_populates="orders")
+    user: Mapped["UserModel"] = relationship(back_populates="orders")  # noqa
     order_items: Mapped[list["OrderItemModel"]] = relationship(
         "OrderItemModel",
         back_populates="order",
@@ -75,7 +75,7 @@ class OrderItemModel(Base):
     )
 
     order: Mapped["OrderModel"] = relationship(back_populates="order_items")
-    movie: Mapped["Movie"] = relationship(back_populates="order_items")
+    movie: Mapped["Movie"] = relationship(back_populates="order_items")  # noqa
 
     def __repr__(self) -> str:
         return (

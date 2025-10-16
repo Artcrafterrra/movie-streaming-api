@@ -79,7 +79,7 @@ class UserModel(Base):
         "UserGroupModel", back_populates="users"
     )
 
-    orders: Mapped[list["OrderModel"]] = relationship(
+    orders: Mapped[list["OrderModel"]] = relationship(  # noqa
         "OrderModel", back_populates="user", cascade="all, delete-orphan"
     )
 

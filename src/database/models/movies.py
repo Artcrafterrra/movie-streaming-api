@@ -120,7 +120,7 @@ class Movie(Base):
     favorites: Mapped[list["Favorite"]] = relationship(
         "Favorite", back_populates="movie", cascade="all, delete-orphan"
     )
-    order_items: Mapped[list["OrderItemModel"]] = relationship(
+    order_items: Mapped[list["OrderItemModel"]] = relationship(  # noqa
         "OrderItemModel", back_populates="movie", cascade="all, delete-orphan"
     )
 
