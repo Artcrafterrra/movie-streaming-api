@@ -27,11 +27,13 @@ from schemas.accounts import (
 )
 from config.settings import base_app_settings
 from security.passwords import hash_password, verify_password
-from security.token_manager import create_access_token
+from security.token_manager import JWTAuthManager
 import jwt
 import os
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
+
+jwt_manager = JWTAuthManager()
 
 
 async def get_user_by_email(db: AsyncSession, email: str):
@@ -237,16 +239,29 @@ async def resend_activation(
     )
 
 
-@router.put("/auth/password/",
-            response_model=UserPasswordChangeSchema,
-            dependencies=[Depends(get_current_user)])
-async def change_password(password_data: UserPasswordChangeSchema,
-                          user: UserModel = Depends(get_current_user),
-                          db: AsyncSession = Depends(get_postgresql_db)):
-    if not verify_password(password_data.get("old_password"), user._hashed_password):
-        raise HTTPException(status_code=403, details="Unauthorized users cannot change password")
-    if password_data.get("new_password1") != password_data.get("new_password2"):
-        raise HTTPException(status_code=400, details="New password templates don't match")
+@router.put(
+    "/auth/password/",
+    response_model=UserPasswordChangeSchema,
+    dependencies=[Depends(get_current_user)],
+)
+async def change_password(
+    password_data: UserPasswordChangeSchema,
+    user: UserModel = Depends(get_current_user),
+    db: AsyncSession = Depends(get_postgresql_db),
+):
+    if not verify_password(
+        password_data.get("old_password"), user._hashed_password
+    ):
+        raise HTTPException(
+            status_code=403,
+            details="Unauthorized users cannot change password",
+        )
+    if password_data.get("new_password1") != password_data.get(
+        "new_password2"
+    ):
+        raise HTTPException(
+            status_code=400, details="New password templates don't match"
+        )
     user._hashed_password = hash_password(password_data.get("new_password1"))
     db.add(user)
     await db.commit()
@@ -255,15 +270,17 @@ async def change_password(password_data: UserPasswordChangeSchema,
 
 
 @router.post("/auth/forgot-password/", response_model=UserForgotPasswordSchema)
-async def forgot_password(payload: UserForgotPasswordSchema,
-                          db: AsyncSession = Depends(get_postgresql_db),
-                          email_sender: EmailSender = Depends(get_accounts_email_notificator)):
+async def forgot_password(
+    payload: UserForgotPasswordSchema,
+    db: AsyncSession = Depends(get_postgresql_db),
+    email_sender: EmailSender = Depends(get_accounts_email_notificator),
+):
     user = await get_user_by_email(db=db, email=payload)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="User not found."
         )
-    reset_token = create_access_token(
+    reset_token = jwt_manager.create_access_token(
         {"sub": str(user.id)}, expires_delta=timedelta(minutes=15)
     )
     reset_link = f"http://{base_app_settings.HOST_NAME}/api/v1/auth/reset-password?token={reset_token}"
@@ -277,7 +294,11 @@ async def reset_password(
     db: AsyncSession = Depends(get_postgresql_db),
 ):
     try:
-        payload_data = jwt.decode(payload.token, os.environ["SECRET_KEY_ACCESS"], algorithms=[os.environ["JWT_SIGNING_ALGORITHM"]])
+        payload_data = jwt.decode(
+            payload.token,
+            os.environ["SECRET_KEY_ACCESS"],
+            algorithms=[os.environ["JWT_SIGNING_ALGORITHM"]],
+        )
         user_id = int(payload_data.get("sub"))
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=400, detail="Token expired")
