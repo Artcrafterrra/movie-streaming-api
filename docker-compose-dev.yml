@@ -149,11 +149,34 @@ services:
     command: celery -A src.celery_app worker --loglevel=info
     env_file:
       - .env
+    environment:
+      PYTHONPATH: /usr/src/src
+    depends_on:
+      redis:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+    volumes:
+      - ./src:/usr/src/src
+    networks:
+      - theater_network
+    restart: always
+    user: "1000:1000"
+
+  celery_beat:
+    build: .
+    container_name: celery_beat_theater
+    command: celery -A src.celery_app beat --loglevel=info
+    env_file:
+      - .env
+    environment:
+      PYTHONPATH: /usr/src/src
     depends_on:
       redis:
         condition: service_healthy
     networks:
       - theater_network
+    restart: always
 
 volumes:
   postgres_theater_data:
