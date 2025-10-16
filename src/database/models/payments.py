@@ -22,6 +22,7 @@ class PaymentStatusEnum(str, Enum):
     SUCCESSFUL = "successful"
     CANCELED = "canceled"
     REFUNDED = "refunded"
+    PENDING = "pending"
 
 
 class PaymentModel(Base):

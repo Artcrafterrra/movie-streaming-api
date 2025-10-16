@@ -13,4 +13,4 @@ app.include_router(orders_router, prefix=api_version_prefix)
 
 app.include_router(carts.router, prefix=api_version_prefix)
 
-app.include_router(payments.router, prefix=api_version_prefix)
+# app.include_router(payments.router, prefix=api_version_prefix)

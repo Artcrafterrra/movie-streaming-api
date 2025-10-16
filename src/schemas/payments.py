@@ -30,3 +30,15 @@ class PaymentHistoryResponse(BaseModel):
 
 class WebhookAck(BaseModel):
     received: bool
+
+
+class CreateStripeSessionRequest(BaseModel):
+    order_id: int = Field(..., gt=0)
+
+
+class CreateStripeSessionResponse(BaseModel):
+    session_id: str = Field(...)
+    session_url: str = Field(...)
+    amount: float = Field(..., gt=0)
+    order_id: int = Field(...)
+    currency: str = Field(default="usd")

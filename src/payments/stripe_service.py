@@ -87,7 +87,6 @@ async def create_payment(
     external_payment_id: Optional[str] = None,
 ) -> PaymentModel:
 
-    # 1. Перевіряємо замовлення
     order = await get_order_with_items(session, order_id)
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
@@ -100,7 +99,6 @@ async def create_payment(
     if order.status == OrderStatusEnum.CANCELED:
         raise HTTPException(status_code=400, detail="Order is canceled")
 
-    # 2. Перевіряємо суму
     amount = to_decimal(amount)
     if amount <= 0:
         raise HTTPException(status_code=400, detail="Amount must be positive")
@@ -185,7 +183,6 @@ async def confirm_payment(
     if intent.status != "succeeded":
         raise HTTPException(status_code=400, detail="Payment not succeeded")
 
-    # 2. Створюємо платіж в нашій БД
     order_id = int(intent.metadata["order_id"])
     user_id = int(intent.metadata["user_id"])
     amount = stripe_amount_to_dollars(intent.amount)

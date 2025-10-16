@@ -18,26 +18,32 @@ from schemas.payments import (
     PaymentHistoryResponse,
     WebhookAck,
 )
+from schemas.payments import (
+    CreateStripeSessionRequest,
+    CreateStripeSessionResponse,
+)
+
+stripe.api_key = base_app_settings.STRIPE_SECRET_KEY
 
 router = APIRouter(prefix="/api/payments", tags=["Payments"])
 
 
-@router.post("/create-intent/", response_model=CreatePaymentIntentResponse)
-async def create_payment_intent_endpoint(
-    request: CreatePaymentIntentRequest,
+@router.post("/create-session/", response_model=CreateStripeSessionResponse)
+async def create_stripe_session_endpoint(
+    request: CreateStripeSessionRequest,
     current_user: UserModel = Depends(get_current_user),
     db: AsyncSession = Depends(get_postgresql_db),
 ):
-    result = await create_payment_intent(
-        session=db,
+    payment = await StripePaymentService().create_stripe_session(
+        db=db,
         user_id=current_user.id,
         order_id=request.order_id,
     )
-
-    return CreatePaymentIntentResponse(
-        client_secret=result["client_secret"],
-        amount=result["amount"],
-        order_id=result["order_id"],
+    return CreateStripeSessionResponse(
+        session_id=payment.external_payment_id,
+        session_url=payment.external_payment_link,
+        amount=float(payment.amount),
+        order_id=payment.order_id,
         currency="usd",
     )
 
@@ -65,50 +71,3 @@ async def get_my_payments_endpoint(
     return PaymentHistoryResponse(
         payments=payment_items, count=len(payment_items)
     )
-
-
-@router.post(
-    "/webhook", response_model=WebhookAck, status_code=status.HTTP_200_OK
-)
-async def stripe_webhook(
-    request: Request,
-    db: AsyncSession = Depends(get_postgresql_db),
-):
-    payload = await request.body()
-    sig_header = request.headers.get("Stripe-Signature")
-    if not sig_header:
-        raise HTTPException(
-            status_code=400, detail="Missing Stripe-Signature header"
-        )
-
-    endpoint_secret = getattr(base_app_settings, "STRIPE_WEBHOOK_SECRET", None)
-    if not endpoint_secret:
-        raise HTTPException(
-            status_code=500, detail="Webhook secret is not configured"
-        )
-
-    try:
-        event = stripe.Webhook.construct_event(
-            payload=payload, sig_header=sig_header, secret=endpoint_secret
-        )
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid payload")
-    except stripe.error.SignatureVerificationError:
-        raise HTTPException(status_code=400, detail="Invalid signature")
-
-    event_type = event.get("type")
-    data_object = event.get("data", {}).get("object", {})
-
-    if event_type == "payment_intent.succeeded":
-        intent_id = data_object.get("id")
-        if not intent_id:
-            raise HTTPException(
-                status_code=400, detail="Missing PaymentIntent id"
-            )
-        payment = await confirm_payment(db, intent_id)
-        return WebhookAck(received=True)
-
-    if event_type in {"payment_intent.payment_failed", "charge.refunded"}:
-        return WebhookAck(received=True)
-
-    return WebhookAck(received=True)
