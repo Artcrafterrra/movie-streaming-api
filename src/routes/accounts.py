@@ -14,14 +14,14 @@ from config.dependencies import (
     get_accounts_email_notificator,
     get_jwt_auth_manager,
 )
-from database import (
+from database.models import (
     UserModel,
     UserGroupModel,
     UserGroupEnum,
     ActivationTokenModel,
     RefreshTokenModel,
 )
-from database.session_postgresql import get_postgresql_db
+from database import get_db
 from exceptions import BaseSecurityError
 from notifications import EmailSender
 from schemas.accounts import (
@@ -47,9 +47,7 @@ async def get_user_by_email(db: AsyncSession, email: str):
     return result.scalar_one_or_none()
 
 
-async def get_current_user(
-    user_id: int, db: AsyncSession = Depends(get_postgresql_db)
-):
+async def get_current_user(user_id: int, db: AsyncSession = Depends(get_db)):
     stmt = (
         select(UserModel)
         .where(UserModel.id == user_id)
@@ -87,7 +85,7 @@ async def moderator_required(
 )
 async def register(
     user_data: UserRegisterRequestShema,
-    db: AsyncSession = Depends(get_postgresql_db),
+    db: AsyncSession = Depends(get_db),
     email_sender: EmailSender = Depends(get_accounts_email_notificator),
 ):
 
@@ -149,7 +147,7 @@ async def register(
 async def activate(
     email: str,
     token: str,
-    db: AsyncSession = Depends(get_postgresql_db),
+    db: AsyncSession = Depends(get_db),
     email_sender: EmailSender = Depends(get_accounts_email_notificator),
 ):
     statement = (
@@ -203,7 +201,7 @@ async def activate(
 )
 async def resend_activation(
     email: str,
-    db: AsyncSession = Depends(get_postgresql_db),
+    db: AsyncSession = Depends(get_db),
     email_sender: EmailSender = Depends(get_accounts_email_notificator),
 ):
     user = await get_user_by_email(db=db, email=email)
@@ -258,7 +256,7 @@ async def resend_activation(
 )
 async def login(
     login_data: UserLoginRequestSchema,
-    db: AsyncSession = Depends(get_postgresql_db),
+    db: AsyncSession = Depends(get_db),
     jwt_manager: JWTAuthManager = Depends(get_jwt_auth_manager),
 ):
     user = await get_user_by_email(db=db, email=str(login_data.email))
@@ -304,7 +302,7 @@ async def login(
 )
 async def logout(
     user: UserModel = Depends(get_current_user),
-    db: AsyncSession = Depends(get_postgresql_db),
+    db: AsyncSession = Depends(get_db),
 ):
     await db.execute(
         delete(RefreshTokenModel).where(RefreshTokenModel.user_id == user.id)
@@ -321,7 +319,7 @@ async def logout(
 )
 async def refresh(
     token_data: TokenRefreshRequestSchema,
-    db: AsyncSession = Depends(get_postgresql_db),
+    db: AsyncSession = Depends(get_db),
     jwt_manager: JWTAuthManager = Depends(get_jwt_auth_manager),
 ):
     try:
