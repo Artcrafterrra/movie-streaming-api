@@ -26,3 +26,7 @@ class PaymentHistoryItem(BaseModel):
 class PaymentHistoryResponse(BaseModel):
     payments: List[PaymentHistoryItem]
     count: int
+
+
+class WebhookAck(BaseModel):
+    received: bool
