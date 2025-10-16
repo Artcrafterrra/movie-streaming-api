@@ -141,3 +141,19 @@ class EmailSender(EmailSenderInterface):
         html_content = template.render(email=email, login_link=login_link)
         subject = "Your Password Has Been Successfully Reset"
         await self._send_email(email, subject, html_content)
+
+    async def send_recovery_link(self, to_email: str, reset_link: str):
+        msg = MIMEMultipart()
+        msg["Subject"] = "Password Reset"
+        msg["From"] = "noreply@movie-streaming-api.com"
+        msg["To"] = to_email
+        msg.set_content(f"Click here to reset your password: {reset_link}")
+
+        await aiosmtplib.send(
+            msg,
+            hostname=self._hostname,
+            port=self._port,
+            start_tls=self._use_tls,
+            username="noreply@yourapp.com",
+            password="yourpassword",
+        )

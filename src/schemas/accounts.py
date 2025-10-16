@@ -1,3 +1,4 @@
+from re import S
 from pydantic import BaseModel, EmailStr, ConfigDict, field_validator
 
 from database.validators.accounts import (
@@ -37,3 +38,19 @@ class UserActivationRequestSchema(BaseModel):
 
 class MessageResponseSchema(BaseModel):
     message: str
+
+
+class UserPasswordChangeSchema(BaseModel):
+    old_password: str
+    new_password1: str
+    new_password2: str
+
+
+class UserForgotPasswordSchema(BaseModel):
+    email: str
+
+
+class UserResetPasswordSchema(BaseModel):
+    token: str
+    new_password: str
+    new_password2: str
