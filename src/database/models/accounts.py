@@ -79,6 +79,10 @@ class UserModel(Base):
         "UserGroupModel", back_populates="users"
     )
 
+    orders: Mapped[list["OrderModel"]] = relationship(
+        "OrderModel", back_populates="user", cascade="all, delete-orphan"
+    )
+
     activation_token: Mapped[Optional["ActivationTokenModel"]] = relationship(
         "ActivationTokenModel",
         back_populates="user",

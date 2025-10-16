@@ -120,6 +120,9 @@ class Movie(Base):
     favorites: Mapped[list["Favorite"]] = relationship(
         "Favorite", back_populates="movie", cascade="all, delete-orphan"
     )
+    order_items: Mapped[list["OrderItemModel"]] = relationship(
+        "OrderItemModel", back_populates="movie", cascade="all, delete-orphan"
+    )
 
     def __repr__(self) -> str:
         return f"<Movie name={self.name!r}, year={self.year}, cert={self.certification}>"
