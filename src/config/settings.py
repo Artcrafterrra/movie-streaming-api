@@ -58,6 +58,16 @@ class BaseAppSettings(BaseSettings):
     )
     S3_USE_SSL: bool = os.getenv("S3_USE_SSL", "False").lower() == "true"
 
+    STRIPE_PUBLISHABLE_KEY: str = os.getenv("STRIPE_PUBLISHABLE_KEY", "")
+    STRIPE_SECRET_KEY: str = os.getenv("STRIPE_SECRET_KEY", "")
+    STRIPE_WEBHOOK_SECRET: str = os.getenv("STRIPE_WEBHOOK_SECRET", "")
+    STRIPE_SUCCESS_URL: str = os.getenv(
+        "STRIPE_SUCCESS_URL", "http://localhost:3000/payment/success"
+    )
+    STRIPE_CANCEL_URL: str = os.getenv(
+        "STRIPE_CANCEL_URL", "http://localhost:3000/payment/cancel"
+    )
+
     @property
     def S3_STORAGE_ENDPOINT(self) -> str | None:  # NOQA N802
         """
@@ -93,6 +103,10 @@ class TestingSettings(BaseAppSettings):
     SECRET_KEY_ACCESS: str = "SECRET_KEY_ACCESS"
     SECRET_KEY_REFRESH: str = "SECRET_KEY_REFRESH"
     JWT_SIGNING_ALGORITHM: str = "HS256"
+
+    STRIPE_PUBLISHABLE_KEY: str = "pk_test_fake"
+    STRIPE_SECRET_KEY: str = "sk_test_fake"
+    STRIPE_WEBHOOK_SECRET: str = "whsec_test_fake"
 
     def model_post_init(self, __context: dict[str, Any] | None = None) -> None:
         object.__setattr__(self, "PATH_TO_DB", ":memory:")
