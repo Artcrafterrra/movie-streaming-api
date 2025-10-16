@@ -88,6 +88,22 @@ class Settings(BaseAppSettings):
     )
     JWT_SIGNING_ALGORITHM: str = os.getenv("JWT_SIGNING_ALGORITHM", "HS256")
 
+    # Added for PostgreSQL async SQLAlchemy and Redis
+    @property
+    def DATABASE_URL(self) -> str:
+        return (
+            f"postgresql+asyncpg://{self.POSTGRES_USER}:"
+            f"{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:"
+            f"{self.POSTGRES_DB_PORT}/{self.POSTGRES_DB}"
+        )
+
+    @property
+    def REDIS_URL(self) -> str:
+        redis_host = os.getenv("REDIS_HOST", "redis_theater")
+        redis_port = os.getenv("REDIS_PORT", "6379")
+        redis_db = os.getenv("REDIS_DB", "0")
+        return f"redis://{redis_host}:{redis_port}/{redis_db}"
+
 
 class TestingSettings(BaseAppSettings):
     SECRET_KEY_ACCESS: str = "SECRET_KEY_ACCESS"
@@ -103,4 +119,4 @@ class TestingSettings(BaseAppSettings):
         )
 
 
-base_app_settings = BaseAppSettings()
+base_app_settings = Settings()

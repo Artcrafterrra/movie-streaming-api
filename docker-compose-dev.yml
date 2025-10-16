@@ -155,6 +155,18 @@ services:
     networks:
       - theater_network
 
+  celery_beat:
+    build: .
+    container_name: celery_beat_theater
+    command: celery -A src.celery_app beat --loglevel=info
+    env_file:
+      - .env
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - theater_network
+
 volumes:
   postgres_theater_data:
   pgadmin_theater_data:
