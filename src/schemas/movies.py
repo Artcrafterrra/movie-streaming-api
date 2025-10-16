@@ -98,19 +98,19 @@ class MovieCreateSchema(BaseModel):
 
 
 class MovieUpdateSchema(BaseModel):
-    name: Optional[str] = Field(min_length=1, max_length=250)
-    year: Optional[int] = Field(ge=1888, le=datetime.now().year + 1)
-    time: Optional[int] = Field(gt=0)
-    imdb: Optional[float] = Field(ge=0, le=10)
-    votes: Optional[int] = Field(ge=0)
+    name: Optional[str] = Field(None, min_length=1, max_length=250)
+    year: Optional[int] = Field(None, ge=1888, le=datetime.now().year + 1)
+    time: Optional[int] = Field(None, gt=0)
+    imdb: Optional[float] = Field(None, ge=0, le=10)
+    votes: Optional[int] = Field(None, ge=0)
     meta_score: Optional[float] = Field(None, ge=0, le=100)
     gross: Optional[float] = Field(None, ge=0)
-    description: Optional[str] = Field(min_length=10)
-    price: Optional[float] = Field(ge=0)
-    certification: Optional[CertificationEnum]
-    genres: List[int] = []
-    stars: List[int] = []
-    directors: List[int] = []
+    description: Optional[str] = Field(None, min_length=10)
+    price: Optional[float] = Field(None, ge=0)
+    certification: Optional[CertificationEnum] = None
+    genres: Optional[List[int]] = None
+    stars: Optional[List[int]] = None
+    directors: Optional[List[int]] = None
 
 
 class GenreBaseSchema(BaseModel):

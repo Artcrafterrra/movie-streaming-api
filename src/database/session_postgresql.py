@@ -63,3 +63,11 @@ async def get_postgresql_db_contextmanager() -> (
     """
     async with AsyncPostgresqlSessionLocal() as session:
         yield session
+
+
+async def reset_postgresql_database() -> None:
+    """
+    Placeholder for reset functionality.
+    In testing, SQLite reset is used instead.
+    """
+    pass

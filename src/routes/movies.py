@@ -4,8 +4,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload, joinedload
 
-from database import get_db, UserModel
-from database.models import OrderItemModel
+from database import get_db
+from database.models import OrderItemModel, UserModel
 from database.models.movies import (
     Movie,
     Genre,
