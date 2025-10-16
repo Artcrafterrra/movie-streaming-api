@@ -19,7 +19,7 @@ from database.models import (
     UserGroupModel,
     UserGroupEnum,
     ActivationTokenModel,
-    RefreshTokenModel,
+    RefreshTokenModel, UserProfileModel,
 )
 from database import get_db
 from exceptions import BaseSecurityError
@@ -114,6 +114,17 @@ async def register(
         )
         db.add(new_user)
         await db.flush()
+
+        new_profile = UserProfileModel(
+            user_id=new_user.id,
+            first_name=None,
+            last_name=None,
+            avatar=None,
+            gender=None,
+            date_of_birth=None,
+            info=None
+        )
+        db.add(new_profile)
 
         activation_token = ActivationTokenModel(
             user_id=new_user.id,
