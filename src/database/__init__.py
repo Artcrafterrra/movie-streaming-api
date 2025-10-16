@@ -29,5 +29,5 @@ else:
 print(f"[database] Using environment: {environment}")
 
 
-from database.models.accounts import UserModel # noqa
-from database.models.movies import Movie # noqa
+from database.models.accounts import UserModel  # noqa
+from database.models.movies import Movie  # noqa
