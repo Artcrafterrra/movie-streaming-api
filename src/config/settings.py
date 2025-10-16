@@ -74,12 +74,33 @@ class BaseAppSettings(BaseSettings):
 
 
 class Settings(BaseAppSettings):
+    # PostgreSQL
     POSTGRES_USER: str = os.getenv("POSTGRES_USER", "test_user")
     POSTGRES_PASSWORD: str = os.getenv("POSTGRES_PASSWORD", "test_password")
     POSTGRES_HOST: str = os.getenv("POSTGRES_HOST", "test_host")
     POSTGRES_DB_PORT: int = int(os.getenv("POSTGRES_DB_PORT", 5432))
     POSTGRES_DB: str = os.getenv("POSTGRES_DB", "test_db")
 
+    @property
+    def DATABASE_URL(self) -> str:
+        """Async SQLAlchemy connection string"""
+        return (
+            f"postgresql+asyncpg://{self.POSTGRES_USER}:"
+            f"{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:"
+            f"{self.POSTGRES_DB_PORT}/{self.POSTGRES_DB}"
+        )
+
+    # Redis (Celery broker/backend)
+    REDIS_HOST: str = os.getenv("REDIS_HOST", "redis_theater")
+    REDIS_PORT: int = int(os.getenv("REDIS_PORT", 6379))
+    REDIS_DB: int = int(os.getenv("REDIS_DB", 0))
+
+    @property
+    def REDIS_URL(self) -> str:
+        """Redis connection URL for Celery"""
+        return f"redis://{self.REDIS_HOST}:{self.REDIS_PORT}/{self.REDIS_DB}"
+
+    # JWT
     SECRET_KEY_ACCESS: str = os.getenv(
         "SECRET_KEY_ACCESS", os.urandom(32).hex()
     )
@@ -103,4 +124,4 @@ class TestingSettings(BaseAppSettings):
         )
 
 
-base_app_settings = BaseAppSettings()
+base_app_settings = Settings()
